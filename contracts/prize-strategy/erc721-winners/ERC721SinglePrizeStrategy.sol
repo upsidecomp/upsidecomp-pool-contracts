@@ -18,7 +18,7 @@ contract ERC721SinglePrizeStrategy is PeriodicPrizeStrategy, PrizeSplit {
     PrizePool _prizePool,
     TicketInterface _ticket,
     IERC20Upgradeable _sponsorship,
-    RNGInterface _rng,
+    RNGInterface _rng
   ) public initializer {
     IERC20Upgradeable[] memory _externalErc20Awards;
 

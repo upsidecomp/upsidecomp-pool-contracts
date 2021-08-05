@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0 <0.7.0;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/access/OwnableUpgradeable.sol";
 
 import "./RegistryInterface.sol";
 

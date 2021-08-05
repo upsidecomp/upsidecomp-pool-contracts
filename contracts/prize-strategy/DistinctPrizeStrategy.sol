@@ -2,14 +2,14 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/utils/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/introspection/ERC165CheckerUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/utils/AddressUpgradeable.sol";
 import "@pooltogether/pooltogether-rng-contracts/contracts/RNGInterface.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
@@ -145,20 +145,17 @@ abstract contract DistinctPrizeStrategy is Initializable,
   struct DistinctPrize {
     address owner;
     IERC721Upgradeable internalErc721;
-    uint256 internalErc721TokenId;
+    uint256[] internalErc721TokenId;
     uint256 prizePeriodSeconds;
     uint256 prizePeriodStartedAt;
     uint256 accruedBalance;
   }
 
   mapping(uint256 => DistinctPrize) public distinctPrizeList;
-  mapping(uint256 => mapping(address => mapping(address => uint198))) public distinctPrizeTokenBalance;
-
+  mapping(uint256 => mapping(address => mapping(address => uint192))) public distinctPrizeTokenBalance;
   uint256 internal _distinctPrizeId = 0;
 
   /// @notice Initializes a new strategy
-  /// @param _prizePeriodStart The starting timestamp of the prize period.
-  /// @param _prizePeriodSeconds The duration of the prize period in seconds
   /// @param _prizePool The prize pool to award
   /// @param _ticket The ticket to use to draw winners
   /// @param _sponsorship The sponsorship token
@@ -174,6 +171,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
     require(address(_ticket) != address(0), "PeriodicPrizeStrategy/ticket-not-zero");
     require(address(_sponsorship) != address(0), "PeriodicPrizeStrategy/sponsorship-not-zero");
     require(address(_rng) != address(0), "PeriodicPrizeStrategy/rng-not-zero");
+    
     prizePool = _prizePool;
     ticket = _ticket;
     rng = _rng;
@@ -183,7 +181,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
     Constants.REGISTRY.setInterfaceImplementer(address(this), Constants.TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
 
     // 30 min timeout
-    _setRngRequestTimeout(1800);
+    // _setRngRequestTimeout(1800);
 
     emit Initialized(
       _prizePool,
@@ -194,10 +192,6 @@ abstract contract DistinctPrizeStrategy is Initializable,
   }
 
   function _distribute(uint256 randomNumber) internal virtual;
-
-  function getPrize(uint256 distinctPrizeId) public view returns (address, uint256) {
-    return (distinctPrizeList[distinctPrizeId].internalErc721, distinctPrizeList[distinctPrizeId].internalErc721TokenId);
-  }
 
   function depositToDistinctPrize(
     address from,
@@ -210,33 +204,54 @@ abstract contract DistinctPrizeStrategy is Initializable,
     onlyPrizePoolControlledToken(controlledToken)
     canAddLiquidity(amount)
   {
-    _depositToDistinctPrize(from, amount, distinctPrizeId);
-  }
+    ControlledToken(address(controlledToken)).transferFrom(from, address(this), amount);
 
-  function _depositToDistinctPrize(
+    distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from] = distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from].add(amount.toUint128());
+  }
+  
+  function withdrawFromDistinctPrize(
     address from,
     uint256 amount,
     address controlledToken,
     uint256 distinctPrizeId
   )
-    internal
+    public
+    nonReentrant
+    onlyPrizePoolControlledToken(controlledToken)
+    canRemoveLiquidity(amount)
   {
-    require(amount > 0, "DistinctPrizeStrategy/ticket-allocation-amount-invalid");
+    ControlledToken(address(controlledToken)).transferFrom(address(this), from, amount);
 
-    ControlledToken(address(controlledToken)).transferFrom(from, address(this), amount);
+    distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from] = distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from].sub(amount.toUint128());
+  }
+  
+  function addERC721Prize(address owner, IERC721Upgradeable _externalErc721, uint256[] calldata _tokenIds) public {
+    require(prizePool.canAwardExternal(address(_externalErc721)), "PeriodicPrizeStrategy/cannot-award-external");
+    require(address(_externalErc721).supportsInterface(Constants.ERC165_INTERFACE_ID_ERC721), "PeriodicPrizeStrategy/erc721-invalid");
 
-    distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from] = amount.toUint128();
+    distinctPrizeId++;
+    
+    distinctPrizeList[distinctPrizeId] = DistinctPrize({
+       owner: owner,
+       internalErc721: _externalErc721
+    });
+    
+    for (uint256 i = 0; i < _tokenIds.length; i++) {
+      _addExternalErc721Award(_externalErc721, _tokenIds[i]);
+    }
 
-    // emit DepositToDistinctPrize(from, controlledToken, amount, distinctPrizeId);
+    emit ExternalErc721AwardAdded(_externalErc721, _tokenIds);
   }
 
-  /// @status TO BE REMOVED
   /// @notice Calculates and returns the currently accrued prize
   /// @return The current prize size
   function currentPrize() public view returns (uint256) {
     return prizePool.awardBalance();
   }
 
+  function getPrize(uint256 distinctPrizeId) public view returns (address, uint256) {
+    return (distinctPrizeList[distinctPrizeId].internalErc721, distinctPrizeList[distinctPrizeId].internalErc721TokenId);
+  }
 
   function getPrizeAccruedBalance(uint256 distinctPrizeId) public view returns (uint256) {
     return distinctPrizeList[distinctPrizeId].accruedBalance;
@@ -389,7 +404,6 @@ abstract contract DistinctPrizeStrategy is Initializable,
     emit PrizePoolAwardStarted(_msgSender(), address(prizePool), requestId, lockBlock);
   }
 
-  // todo: fix
   /// @notice Can be called by anyone to unlock the tickets if the RNG has timed out.
   function cancelAward(uint256 distinctPrizeId) public {
     require(isRngTimedOut(), "PeriodicPrizeStrategy/rng-not-timedout");
@@ -403,7 +417,6 @@ abstract contract DistinctPrizeStrategy is Initializable,
     emit PrizePoolAwardCancelled(msg.sender, address(prizePool), requestId, lockBlock, distinctPrizeId);
   }
 
-  // todo: fix
   /// @notice Completes the award process and awards the winners.  The random number must have been requested and is now available.
   function completeAward() external requireCanCompleteAward {
     uint256 randomNumber = rng.randomNumber(rngRequest.id);
@@ -424,130 +437,12 @@ abstract contract DistinctPrizeStrategy is Initializable,
     // emit PrizePoolOpened(_msgSender(), prizePeriodStartedAt);
   }
 
-  /// @notice Allows the owner to set a listener that is triggered immediately before the award is distributed
-  /// @dev The listener must implement ERC165 and the BeforeAwardListenerInterface
-  /// @param _beforeAwardListener The address of the listener contract
-  function setBeforeAwardListener(BeforeAwardListenerInterface _beforeAwardListener) external onlyOwner requireAwardNotInProgress {
-    require(
-      address(0) == address(_beforeAwardListener) || address(_beforeAwardListener).supportsInterface(BeforeAwardListenerLibrary.ERC165_INTERFACE_ID_BEFORE_AWARD_LISTENER),
-      "PeriodicPrizeStrategy/beforeAwardListener-invalid"
-    );
-
-    beforeAwardListener = _beforeAwardListener;
-
-    emit BeforeAwardListenerSet(_beforeAwardListener);
+  modifier requireAwardNotInProgress() {
+      _;
   }
-
-  /// @notice Allows the owner to set a listener for prize strategy callbacks.
-  /// @param _periodicPrizeStrategyListener The address of the listener contract
-  function setPeriodicPrizeStrategyListener(PeriodicPrizeStrategyListenerInterface _periodicPrizeStrategyListener) external onlyOwner requireAwardNotInProgress {
-    require(
-      address(0) == address(_periodicPrizeStrategyListener) || address(_periodicPrizeStrategyListener).supportsInterface(PeriodicPrizeStrategyListenerLibrary.ERC165_INTERFACE_ID_PERIODIC_PRIZE_STRATEGY_LISTENER),
-      "PeriodicPrizeStrategy/prizeStrategyListener-invalid"
-    );
-
-    periodicPrizeStrategyListener = _periodicPrizeStrategyListener;
-
-    emit PeriodicPrizeStrategyListenerSet(_periodicPrizeStrategyListener);
-  }
-
-  // function _calculateNextPrizePeriodStartTime(uint256 currentTime) internal view returns (uint256) {
-  //   uint256 elapsedPeriods = currentTime.sub(prizePeriodStartedAt).div(prizePeriodSeconds);
-  //   return prizePeriodStartedAt.add(elapsedPeriods.mul(prizePeriodSeconds));
-  // }
-  //
-  // /// @notice Calculates when the next prize period will start
-  // /// @param currentTime The timestamp to use as the current time
-  // /// @return The timestamp at which the next prize period would start
-  // function calculateNextPrizePeriodStartTime(uint256 currentTime) external view returns (uint256) {
-  //   return _calculateNextPrizePeriodStartTime(currentTime);
-  // }
-
-  /// @notice Returns whether an award process can be started
-  /// @return True if an award can be started, false otherwise.
-  function canStartAward(uint256 distinctPrizeId) external view returns (bool) {
-    return _isPrizePeriodOver(distinctPrizeId) && !isRngRequested(distinctPrizeId);
-  }
-
-  /// @notice Returns whether an award process can be completed
-  /// @return True if an award can be completed, false otherwise.
-  function canCompleteAward(uint256 distinctPrizeId) external view returns (bool) {
-    return isRngRequested(distinctPrizeId) && isRngCompleted(distinctPrizeId);
-  }
-
-  /// @notice Returns whether a random number has been requested
-  /// @return True if a random number has been requested, false otherwise.
-  function isRngRequested(uint256 distinctPrizeId) public view returns (bool) {
-    return distinctPrizeList[distinctPrizeId].rngRequest.id != 0;
-  }
-
-  /// @notice Returns whether the random number request has completed.
-  /// @return True if a random number request has completed, false otherwise.
-  function isRngCompleted(uint256 distinctPrizeId) public view returns (bool) {
-    return rng.isRequestComplete(distinctPrizeList[distinctPrizeId].rngRequest.id);
-  }
-
-  // /// @notice Returns the block number that the current RNG request has been locked to
-  // /// @return The block number that the RNG request is locked to
-  // function getLastRngLockBlock() external view returns (uint32) {
-  //   return rngRequest.lockBlock;
-  // }
-  //
-  // /// @notice Returns the current RNG Request ID
-  // /// @return The current Request ID
-  // function getLastRngRequestId() external view returns (uint32) {
-  //   return rngRequest.id;
-  // }
-
-  /// @notice Sets the RNG service that the Prize Strategy is connected to
-  /// @param rngService The address of the new RNG service interface
-  function setRngService(RNGInterface rngService) external onlyOwner requireAwardNotInProgress {
-    require(!isRngRequested(), "PeriodicPrizeStrategy/rng-in-flight");
-
-    rng = rngService;
-    emit RngServiceUpdated(rngService);
-  }
-
-  /// @notice Allows the owner to set the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
-  /// @param _rngRequestTimeout The RNG request timeout in seconds.
-  function setRngRequestTimeout(uint32 _rngRequestTimeout) external onlyOwner requireAwardNotInProgress {
-    _setRngRequestTimeout(_rngRequestTimeout);
-  }
-
-  /// @notice Sets the RNG request timeout in seconds.  This is the time that must elapsed before the RNG request can be cancelled and the pool unlocked.
-  /// @param _rngRequestTimeout The RNG request timeout in seconds.
-  function _setRngRequestTimeout(uint32 _rngRequestTimeout) internal {
-    require(_rngRequestTimeout > 60, "PeriodicPrizeStrategy/rng-timeout-gt-60-secs");
-    rngRequestTimeout = _rngRequestTimeout;
-    emit RngRequestTimeoutSet(rngRequestTimeout);
-  }
-
-  /// @notice Allows the owner to set the prize period in seconds.
-  /// @param _prizePeriodSeconds The new prize period in seconds.  Must be greater than zero.
-  function setPrizePeriodSeconds(uint256 _prizePeriodSeconds) external onlyOwner requireAwardNotInProgress {
-    _setPrizePeriodSeconds(_prizePeriodSeconds);
-  }
-
-  /// @notice Sets the prize period in seconds.
-  /// @param _prizePeriodSeconds The new prize period in seconds.  Must be greater than zero.
-  function _setPrizePeriodSeconds(uint256 _prizePeriodSeconds) internal {
-    require(_prizePeriodSeconds > 0, "PeriodicPrizeStrategy/prize-period-greater-than-zero");
-    prizePeriodSeconds = _prizePeriodSeconds;
-
-    emit PrizePeriodSecondsUpdated(prizePeriodSeconds);
-  }
-
-  function _requireAwardNotInProgress() internal view {
-    uint256 currentBlock = _currentBlock();
-    require(rngRequest.lockBlock == 0 || currentBlock < rngRequest.lockBlock, "PeriodicPrizeStrategy/rng-in-flight");
-  }
-
-  function isRngTimedOut() public view returns (bool) {
-    if (rngRequest.requestedAt == 0) {
-      return false;
-    } else {
-      return _currentTime() > uint256(rngRequestTimeout).add(rngRequest.requestedAt);
-    }
+  
+  modifier requireCanCompleteAward() {
+      _;
   }
 
   modifier onlyOwnerOrListener() {
@@ -557,24 +452,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
             "PeriodicPrizeStrategy/only-owner-or-listener");
     _;
   }
-
-  modifier requireAwardNotInProgress() {
-    _requireAwardNotInProgress();
-    _;
-  }
-
-  modifier requireCanStartAward() {
-    require(_isPrizePeriodOver(), "PeriodicPrizeStrategy/prize-period-not-over");
-    require(!isRngRequested(), "PeriodicPrizeStrategy/rng-already-requested");
-    _;
-  }
-
-  modifier requireCanCompleteAward() {
-    require(isRngRequested(), "PeriodicPrizeStrategy/rng-not-requested");
-    require(isRngCompleted(), "PeriodicPrizeStrategy/rng-not-complete");
-    _;
-  }
-
+  
   modifier onlyPrizePool() {
     require(_msgSender() == address(prizePool), "PeriodicPrizeStrategy/only-prize-pool");
     _;
@@ -586,6 +464,12 @@ abstract contract DistinctPrizeStrategy is Initializable,
   }
 
   modifier canAddLiquidity(address from, address controlledToken, uint256 amount) {
+    require(amount <= IERC20Upgradeable(controlledToken).balanceOf(from), "PeriodicPrizeStrategy/unknown-token");
+    _;
+  }
+  
+  // todo: fix
+  modifier canRemoveLiquidity(address from, address controlledToken, uint256 amount) {
     require(amount <= IERC20Upgradeable(controlledToken).balanceOf(from), "PeriodicPrizeStrategy/unknown-token");
     _;
   }

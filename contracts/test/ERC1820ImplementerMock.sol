@@ -1,7 +1,7 @@
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable/introspection/IERC1820ImplementerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/introspection/IERC1820ImplementerUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC777/IERC777RecipientUpgradeable.sol";
 
 import "../Constants.sol";
 

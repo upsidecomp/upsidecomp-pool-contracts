@@ -2,13 +2,13 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/utils/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC721/IERC721ReceiverUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/introspection/ERC165CheckerUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/SafeERC20Upgradeable.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../external/compound/ICompLike.sol";

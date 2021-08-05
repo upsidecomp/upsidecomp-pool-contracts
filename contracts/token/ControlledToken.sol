@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable/drafts/ERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/drafts/ERC20PermitUpgradeable.sol";
 
 import "./TokenControllerInterface.sol";
 import "./ControlledTokenInterface.sol";

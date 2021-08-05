@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable/introspection/IERC1820RegistryUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/introspection/IERC1820RegistryUpgradeable.sol";
 
 library Constants {
   IERC1820RegistryUpgradeable public constant REGISTRY = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);

@@ -2,7 +2,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/IERC20Upgradeable.sol";
 
 import "../token/ControlledToken.sol";
 import "../prize-strategy/PrizeSplit.sol";
