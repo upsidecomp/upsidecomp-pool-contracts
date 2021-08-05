@@ -171,7 +171,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
     require(address(_ticket) != address(0), "PeriodicPrizeStrategy/ticket-not-zero");
     require(address(_sponsorship) != address(0), "PeriodicPrizeStrategy/sponsorship-not-zero");
     require(address(_rng) != address(0), "PeriodicPrizeStrategy/rng-not-zero");
-    
+
     prizePool = _prizePool;
     ticket = _ticket;
     rng = _rng;
@@ -208,7 +208,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
 
     distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from] = distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from].add(amount.toUint128());
   }
-  
+
   function withdrawFromDistinctPrize(
     address from,
     uint256 amount,
@@ -224,18 +224,18 @@ abstract contract DistinctPrizeStrategy is Initializable,
 
     distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from] = distinctPrizeTokenBalance[distinctPrizeId][controlledToken][from].sub(amount.toUint128());
   }
-  
+
   function addERC721Prize(address owner, IERC721Upgradeable _externalErc721, uint256[] calldata _tokenIds) public {
     require(prizePool.canAwardExternal(address(_externalErc721)), "PeriodicPrizeStrategy/cannot-award-external");
     require(address(_externalErc721).supportsInterface(Constants.ERC165_INTERFACE_ID_ERC721), "PeriodicPrizeStrategy/erc721-invalid");
 
     distinctPrizeId++;
-    
+
     distinctPrizeList[distinctPrizeId] = DistinctPrize({
        owner: owner,
        internalErc721: _externalErc721
     });
-    
+
     for (uint256 i = 0; i < _tokenIds.length; i++) {
       _addExternalErc721Award(_externalErc721, _tokenIds[i]);
     }
@@ -440,7 +440,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
   modifier requireAwardNotInProgress() {
       _;
   }
-  
+
   modifier requireCanCompleteAward() {
       _;
   }
@@ -452,7 +452,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
             "PeriodicPrizeStrategy/only-owner-or-listener");
     _;
   }
-  
+
   modifier onlyPrizePool() {
     require(_msgSender() == address(prizePool), "PeriodicPrizeStrategy/only-prize-pool");
     _;
@@ -467,7 +467,7 @@ abstract contract DistinctPrizeStrategy is Initializable,
     require(amount <= IERC20Upgradeable(controlledToken).balanceOf(from), "PeriodicPrizeStrategy/unknown-token");
     _;
   }
-  
+
   // todo: fix
   modifier canRemoveLiquidity(address from, address controlledToken, uint256 amount) {
     require(amount <= IERC20Upgradeable(controlledToken).balanceOf(from), "PeriodicPrizeStrategy/unknown-token");
