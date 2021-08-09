@@ -36,6 +36,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @dev Emitted when an instance is initialized
   event Initialized(
     address reserveRegistry,
+    address storeRegistry,
     uint256 maxExitFeeMantissa
   );
 
@@ -214,6 +215,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
     emit Initialized(
       address(_reserveRegistry),
+      address(_storeRegistry),
       maxExitFeeMantissa
     );
   }
