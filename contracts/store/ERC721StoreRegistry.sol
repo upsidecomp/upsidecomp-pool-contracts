@@ -3,17 +3,16 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable@3.4.0/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/proxy/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import "./../../utils/MappedSinglyLinkedList.sol";
+import "./../utils/MappedSinglyLinkedList.sol";
 import "./ERC721Store.sol";
-import "../../external/compound/CTokenInterface.sol";
-import "./../../prize-pool/PrizePool.sol";
+import "./../prize-pool/PrizePool.sol";
 import "sortition-sum-tree-factory/contracts/SortitionSumTreeFactory.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/utils/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
 /**
  * Mint a single ERC721 which can hold NFTs
@@ -32,14 +31,11 @@ contract ERC721StoreRegistry is Initializable, OwnableUpgradeable, ReentrancyGua
     mapping(ERC721Store => bool) private _isStoreActive;
 
     PrizePool public prizePool;
-    CTokenInterface public cToken;
 
-    function initialize(PrizePool _prizePool, CTokenInterface _cToken) public initializer {
+    function initialize(PrizePool _prizePool) public initializer {
         require(address(_prizePool) != address(0), "ERC721StoreRegistry/prize-pool-not-zero");
-        require(address(_cToken) != address(0), "ERC721StoreRegistry/ctoken-not-zero");
 
         prizePool = _prizePool;
-        cToken = _cToken;
         
         sortitionSumTrees.createTree(TREE_KEY, MAX_TREE_LEAVES);
 
@@ -54,7 +50,7 @@ contract ERC721StoreRegistry is Initializable, OwnableUpgradeable, ReentrancyGua
         address operator = msg.sender;
 
         ERC721Store s = new ERC721Store();
-        s.initialize(name, symbol, address(cToken));
+        s.initialize(name, symbol, operator);
 
         _isStoreActive[s] = true;
 

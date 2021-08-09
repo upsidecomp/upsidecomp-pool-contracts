@@ -3,7 +3,7 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable@3.4.0/utils/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 import "@pooltogether/yield-source-interface/contracts/IYieldSource.sol";
 
 import "../registry/RegistryInterface.sol";

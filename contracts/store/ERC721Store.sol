@@ -3,13 +3,13 @@
 pragma solidity 0.6.12;
 
 // import "./OpenZeppelin/token/ERC721/ERC721Holder.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC721/IERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC721/ERC721HolderUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable@3.4.0/proxy/Initializable.sol";
-import "./../../utils/MappedSinglyLinkedList.sol";
-import "./../../token/ControlledTokenInterface.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721HolderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "./../utils/MappedSinglyLinkedList.sol";
+import "./../token/ControlledTokenInterface.sol";
 
 contract ERC721StoreManagement {
   address private _manager;

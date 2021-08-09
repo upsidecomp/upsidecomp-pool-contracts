@@ -1,6 +1,6 @@
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 interface YieldSourceStub {
   function canAwardExternal(address _externalToken) external view returns (bool);

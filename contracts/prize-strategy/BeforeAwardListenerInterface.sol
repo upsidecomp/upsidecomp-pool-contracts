@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable@3.4.0/introspection/IERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol";
 
 /// @notice The interface for the Periodic Prize Strategy before award listener.  This listener will be called immediately before the award is distributed.
 interface BeforeAwardListenerInterface is IERC165Upgradeable {

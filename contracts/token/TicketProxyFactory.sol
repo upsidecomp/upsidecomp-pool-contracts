@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable@3.4.0/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
 import "./Ticket.sol";
 import "../external/openzeppelin/ProxyFactory.sol";
