@@ -54,13 +54,13 @@ abstract contract PrizeFacilitator is Initializable, OwnableUpgradeable {
     rngRequestTimeout = 1800;
   }
 
-  function deposit(address to, uint256 amount, address token, address referrer, bytes32 storeId) public onlyFacilitatedStore(storeId) {
-    prizePool.depositTo(storeRegistry.getStoreAddress(storeId), amount, token, referrer);
-    store.updateBalance(storeId, to, amount);
-  }
-
-  modifier onlyFacilitatedStore(bytes32 storeId) {
-      storeRegistry.ensureRegisteredStore(storeId);
-      _;
-  }
+  // function deposit(address to, uint256 amount, address token, address referrer, bytes32 storeId) public onlyFacilitatedStore(storeId) {
+  //   prizePool.depositTo(storeRegistry.getStoreAddress(storeId), amount, token, referrer);
+  //   store.updateBalance(storeId, to, amount);
+  // }
+  //
+  // modifier onlyFacilitatedStore(bytes32 storeId) {
+  //     storeRegistry.ensureRegisteredStore(storeId);
+  //     _;
+  // }
 }

@@ -15,8 +15,8 @@ contract CompoundPrizePoolHarness is CompoundPrizePool {
     return currentTime;
   }
 
-  function supply(uint256 mintAmount) external {
-    _supply(mintAmount);
+  function supply(uint256 mintAmount, address store) external {
+    _supply(mintAmount, store);
   }
 
   function redeem(uint256 redeemAmount) external returns (uint256) {

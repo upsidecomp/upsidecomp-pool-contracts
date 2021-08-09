@@ -13,6 +13,7 @@ contract PrizePoolHarness is PrizePool {
     RegistryInterface _reserveRegistry,
     ControlledTokenInterface[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa,
+    ERC721StoreRegistry _storeRegistry,
     YieldSourceStub _stubYieldSource
   )
     public
@@ -20,13 +21,14 @@ contract PrizePoolHarness is PrizePool {
     PrizePool.initialize(
       _reserveRegistry,
       _controlledTokens,
-      _maxExitFeeMantissa
+      _maxExitFeeMantissa,
+      _storeRegistry
     );
     stubYieldSource = _stubYieldSource;
   }
 
-  function supply(uint256 mintAmount) external {
-    _supply(mintAmount);
+  function supply(uint256 mintAmount, address store) external {
+    _supply(mintAmount, store);
   }
 
   function redeem(uint256 redeemAmount) external {
@@ -49,12 +51,12 @@ contract PrizePoolHarness is PrizePool {
     return stubYieldSource.token();
   }
 
-  function _balance() internal override returns (uint256) {
-    return stubYieldSource.balance();
+  function _balance(address store) internal override returns (uint256) {
+    return stubYieldSource.balance(store);
   }
 
-  function _supply(uint256 mintAmount) internal override {
-    return stubYieldSource.supply(mintAmount);
+  function _supply(uint256 mintAmount, address store) internal override {
+    return stubYieldSource.supply(mintAmount, store);
   }
 
   function _redeem(uint256 redeemAmount) internal override returns (uint256) {
