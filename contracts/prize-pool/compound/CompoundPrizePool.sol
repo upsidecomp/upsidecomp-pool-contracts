@@ -2,14 +2,15 @@
 
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable@3.4.0/token/ERC20/SafeERC20Upgradeable.sol";
 import "@pooltogether/fixed-point/contracts/FixedPoint.sol";
 
 import "../../external/compound/CTokenInterface.sol";
 import "../PrizePool.sol";
+import "./../../store/ERC721StoreRegistry.sol";
 
 /// @title Prize Pool with Compound's cToken
 /// @notice Manages depositing and withdrawing assets from the Prize Pool
@@ -30,6 +31,7 @@ contract CompoundPrizePool is PrizePool {
     RegistryInterface _reserveRegistry,
     ControlledTokenInterface[] memory _controlledTokens,
     uint256 _maxExitFeeMantissa,
+    ERC721StoreRegistry _storeRegistry,
     CTokenInterface _cToken
   )
     public
@@ -38,7 +40,8 @@ contract CompoundPrizePool is PrizePool {
     PrizePool.initialize(
       _reserveRegistry,
       _controlledTokens,
-      _maxExitFeeMantissa
+      _maxExitFeeMantissa,
+      _storeRegistry
     );
     cToken = _cToken;
 
@@ -47,16 +50,17 @@ contract CompoundPrizePool is PrizePool {
 
   /// @dev Gets the balance of the underlying assets held by the Yield Service
   /// @return The underlying balance of asset tokens
-  function _balance() internal override returns (uint256) {
-    return cToken.balanceOfUnderlying(address(this));
+  function _balance(address store) internal override returns (uint256) {
+    return cToken.balanceOfUnderlying(store);
   }
 
   /// @dev Allows a user to supply asset tokens in exchange for yield-bearing tokens
   /// to be held in escrow by the Yield Service
   /// @param amount The amount of asset tokens to be supplied
-  function _supply(uint256 amount) internal override {
+  function _supply(uint256 amount, address store) internal override {
     _token().safeApprove(address(cToken), amount);
     require(cToken.mint(amount) == 0, "CompoundPrizePool/mint-failed");
+    cToken.transfer(store, amount);
   }
 
   /// @dev Checks with the Prize Pool if a specific token type may be awarded as a prize enhancement

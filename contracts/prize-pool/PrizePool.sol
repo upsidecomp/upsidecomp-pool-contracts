@@ -20,6 +20,7 @@ import "../token/ControlledToken.sol";
 import "../token/TokenControllerInterface.sol";
 import "../utils/MappedSinglyLinkedList.sol";
 import "./PrizePoolInterface.sol";
+import "./../store/ERC721StoreRegistry.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.  Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
@@ -181,13 +182,16 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @dev Stores each users balance of credit per token.
   mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
 
+  ERC721StoreRegistry public storeRegistry;
+
   /// @notice Initializes the Prize Pool
   /// @param _controlledTokens Array of ControlledTokens that are controlled by this Prize Pool.
   /// @param _maxExitFeeMantissa The maximum exit fee size
   function initialize (
     RegistryInterface _reserveRegistry,
     ControlledTokenInterface[] memory _controlledTokens,
-    uint256 _maxExitFeeMantissa
+    uint256 _maxExitFeeMantissa,
+    ERC721StoreRegistry _storeRegistry
   )
     public
     initializer
@@ -205,6 +209,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     _setLiquidityCap(uint256(-1));
 
     reserveRegistry = _reserveRegistry;
+    storeRegistry = _storeRegistry;
     maxExitFeeMantissa = _maxExitFeeMantissa;
 
     emit Initialized(
@@ -221,8 +226,8 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @dev Returns the total underlying balance of all assets. This includes both principal and interest.
   /// @return The underlying balance of assets
-  function balance() external returns (uint256) {
-    return _balance();
+  function balance(address store) external returns (uint256) {
+    return _balance(store);
   }
 
   /// @dev Checks with the Prize Pool if a specific token type may be awarded as an external prize
@@ -241,19 +246,23 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     address to,
     uint256 amount,
     address controlledToken,
-    address referrer
+    address referrer,
+    address store
   )
     external override
     nonReentrant
     onlyControlledToken(controlledToken)
     canAddLiquidity(amount)
   {
+    storeRegistry.ensureActiveStore(store);
+
     address operator = _msgSender();
 
-    _mint(to, amount, controlledToken, referrer);
+    _mint(store, amount, controlledToken, referrer);
 
     _token().safeTransferFrom(operator, address(this), amount);
-    _supply(amount);
+
+    _supply(amount, store);
 
     emit Deposited(operator, to, controlledToken, amount, referrer);
   }
@@ -343,11 +352,11 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @notice Captures any available interest as award balance.
   /// @dev This function also captures the reserve fees.
   /// @return The total amount of assets to be awarded for the current prize
-  function captureAwardBalance() external override nonReentrant returns (uint256) {
+  function captureAwardBalance(address store) external override nonReentrant returns (uint256) {
     uint256 tokenTotalSupply = _tokenTotalSupply();
 
     // it's possible for the balance to be slightly less due to rounding errors in the underlying yield source
-    uint256 currentBalance = _balance();
+    uint256 currentBalance = _balance(store);
     uint256 totalInterest = (currentBalance > tokenTotalSupply) ? currentBalance.sub(tokenTotalSupply) : 0;
     uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest.sub(_currentAwardBalance) : 0;
 
@@ -897,11 +906,11 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.
   /// @return The underlying balance of asset tokens
-  function _balance() internal virtual returns (uint256);
+  function _balance(address store) internal virtual returns (uint256);
 
   /// @notice Supplies asset tokens to the yield source.
   /// @param mintAmount The amount of asset tokens to be supplied
-  function _supply(uint256 mintAmount) internal virtual;
+  function _supply(uint256 mintAmount, address store) internal virtual;
 
   /// @notice Redeems asset tokens from the yield source.
   /// @param redeemAmount The amount of yield-bearing tokens to be redeemed
