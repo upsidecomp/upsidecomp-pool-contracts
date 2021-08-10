@@ -60,7 +60,7 @@ contract CompoundPrizePool is PrizePool {
   function _supply(uint256 amount, address store) internal override {
     _token().safeApprove(address(cToken), amount);
     require(cToken.mint(amount) == 0, "CompoundPrizePool/mint-failed");
-    cToken.transfer(store, amount);
+    require(cToken.transfer(store, amount), "CompoundPrizePool/transfer-store-failed");
   }
 
   /// @dev Checks with the Prize Pool if a specific token type may be awarded as a prize enhancement

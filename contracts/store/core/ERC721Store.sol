@@ -11,29 +11,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "./../utils/MappedSinglyLinkedList.sol";
 
 
-contract ERC721StoreCredit is ERC721Store {
-  struct CreditBalance {
-    uint192 balance;
-    uint32 timestamp;
-    bool initialized;
-  }
-
-  /// @dev Stores each users balance of credit per token.
-  mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
-
-  function initialize (
-    string memory name,
-    string memory symbol,
-    address manager
-  ) public initialize {
-    ERC721Store.initialize(name, symbol, manager);
-  }
-}
+import "./ERC721StoreManagement.sol";
+import "./ERC721StoreCredit.sol";
 
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeable, OwnableUpgradeable {
+contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeable, OwnableUpgradeable, ERC721StoreManagement, ERC721StoreCredit {
     using MappedSinglyLinkedList for MappedSinglyLinkedList.Mapping;
 
     event Deposit(IERC721Upgradeable indexed token, uint256[] tokenIds, address indexed from);
@@ -42,9 +26,6 @@ contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeabl
     // store
     MappedSinglyLinkedList.Mapping internal store;
     mapping (IERC721Upgradeable => uint256[]) internal storeTokenIds;
-    mapping(address => uint256) private _balance;
-
-    address private _manager;
 
     function initialize (
       string memory name,
@@ -56,9 +37,9 @@ contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeabl
         __ERC721_init(name, symbol);
         __Ownable_init();
 
-        store.initialize();
+        __ERC721StoreManagement_init(manager);
 
-        _manager = manager;
+        store.initialize();
     }
 
     function deposit(IERC721Upgradeable _token, uint256[] calldata _tokenIds) public onlyManager(msg.sender) {
@@ -87,14 +68,5 @@ contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeabl
       }
 
       storeTokenIds[_token].push(_tokenId);
-    }
-
-    function balance(address user) view external returns (uint256) {
-        return _balance[user];
-    }
-
-    modifier onlyManager(address manager) {
-        require(manager == _manager, "not manager");
-        _;
     }
 }

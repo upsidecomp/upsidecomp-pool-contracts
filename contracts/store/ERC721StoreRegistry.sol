@@ -21,13 +21,13 @@ contract ERC721StoreRegistry is Initializable, OwnableUpgradeable, ReentrancyGua
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
     using SortitionSumTreeFactory for SortitionSumTreeFactory.SortitionSumTrees;
-    
+
     // Ticket-weighted odds
     SortitionSumTreeFactory.SortitionSumTrees internal sortitionSumTrees;
-    
+
     bytes32 constant private TREE_KEY = keccak256("Upside/Ticket");
     uint256 constant private MAX_TREE_LEAVES = 5;
-  
+
     mapping(ERC721Store => bool) private _isStoreActive;
 
     PrizePool public prizePool;
@@ -36,7 +36,7 @@ contract ERC721StoreRegistry is Initializable, OwnableUpgradeable, ReentrancyGua
         require(address(_prizePool) != address(0), "ERC721StoreRegistry/prize-pool-not-zero");
 
         prizePool = _prizePool;
-        
+
         sortitionSumTrees.createTree(TREE_KEY, MAX_TREE_LEAVES);
 
         __Ownable_init();
@@ -56,32 +56,32 @@ contract ERC721StoreRegistry is Initializable, OwnableUpgradeable, ReentrancyGua
 
         return address(s);
     }
-    
+
     function deposit(address store, address user, uint256 amount) external onlyPrizePool {
         uint256 balance = ERC721Store(store).balance(user).add(amount);
         sortitionSumTrees.set(TREE_KEY, balance, bytes32(uint256(user)));
     }
-    
+
     function withdraw(address store, address user, uint256 amount) external onlyPrizePool {
         uint256 balance = ERC721Store(store).balance(user).sub(amount);
         sortitionSumTrees.set(TREE_KEY, balance, bytes32(uint256(user)));
     }
 
-    modifier onlyStore(address store) {
-        _ensureActiveStore(store);
-        _;
+    function ensureActiveStore(address store) external view returns (bool) {
+        return _ensureActiveStore(store);
     }
 
-    function ensureActiveStore(address store) external view {
-        _ensureActiveStore(store);
-    }
-
-    function _ensureActiveStore(address store) internal view {
-        require(_isStoreActive[ERC721Store(store)], "invalid store id");
+    function _ensureActiveStore(address store) internal view returns (bool) {
+        return _isStoreActive[ERC721Store(store)];
     }
 
     modifier onlyPrizePool() {
       require(msg.sender == address(prizePool), "PeriodicPrizeStrategy/only-prize-pool");
       _;
+    }
+
+    modifier onlyStore(address store) {
+        require(_ensureActiveStore(store), "invalid store id");
+        _;
     }
 }

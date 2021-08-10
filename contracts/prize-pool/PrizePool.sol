@@ -183,6 +183,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @dev Stores each users balance of credit per token.
   mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
 
+  /// @dev A registry that manages ERC721Stores
   ERC721StoreRegistry public storeRegistry;
 
   /// @notice Initializes the Prize Pool
@@ -211,6 +212,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
     reserveRegistry = _reserveRegistry;
     storeRegistry = _storeRegistry;
+
     maxExitFeeMantissa = _maxExitFeeMantissa;
 
     emit Initialized(
@@ -255,9 +257,8 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     nonReentrant
     onlyControlledToken(controlledToken)
     canAddLiquidity(amount)
+    onlyStoreInRegistry(store)
   {
-    storeRegistry.ensureActiveStore(store);
-
     address operator = _msgSender();
 
     _mint(store, amount, controlledToken, referrer);
@@ -265,6 +266,8 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     _token().safeTransferFrom(operator, address(this), amount);
 
     _supply(amount, store);
+
+    storeRegistry.deposit(store, to, amount);
 
     emit Deposited(operator, to, controlledToken, amount, referrer);
   }
@@ -941,6 +944,11 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   modifier onlyReserve() {
     ReserveInterface reserve = ReserveInterface(reserveRegistry.lookup());
     require(address(reserve) == msg.sender, "PrizePool/only-reserve");
+    _;
+  }
+
+  modifier onlyStoreInRegistry(address store) {
+    require(storeRegistry.ensureActiveStore(store), "PrizePool/only-store");
     _;
   }
 }

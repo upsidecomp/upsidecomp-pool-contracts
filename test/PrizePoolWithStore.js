@@ -100,498 +100,500 @@ describe('PrizePool', function() {
     })
   })
 
-  // describe('with a mocked prize pool', () => {
-  //   beforeEach(async () => {
-  //     await prizePool.initializeAll(
-  //       reserveRegistry.address,
-  //       [ticket.address],
-  //       poolMaxExitFee,
-  //       yieldSourceStub.address
-  //     )
-  //     await prizePool.setPrizeStrategy(prizeStrategy.address)
-  //     // Credit rate is 1% per second, credit limit is 10%
-  //     await prizePool.setCreditPlanOf(ticket.address, toWei('0.01'), toWei('0.1'))
-  //   })
-  //
-  //   describe("beforeTokenTransfer()", () => {
-  //     it('should not allow uncontrolled tokens to call', async () => {
-  //       await expect(prizePool.beforeTokenTransfer(wallet.address, wallet2.address, toWei('1')))
-  //         .to.be.revertedWith('PrizePool/unknown-token')
-  //     })
-  //
-  //     it('should allow controlled tokens to call', async () => {
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
-  //       await ticket.mock.balanceOf.withArgs(wallet2.address).returns(toWei('10'))
-  //
-  //       await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet2.address, toWei('1'), ticket.address).returns()
-  //       await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet2.address, toWei('1'))
-  //     })
-  //
-  //     it('should accrue credit to the sender and receiver', async () => {
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('100'))
-  //       await ticket.mock.balanceOf.withArgs(wallet2.address).returns(toWei('10'))
-  //
-  //       debug(`calculateEarlyExitFee...`)
-  //       await prizePool.setCurrentTime(0)
-  //       // trigger credit init
-  //       await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, 42)
-  //       await prizePool.calculateEarlyExitFee(wallet2.address, ticket.address, 42)
-  //
-  //       debug(`beforeTokenTransfer...`)
-  //       await prizePool.setCurrentTime(5)
-  //       // wallet will have accrued 5 dai of credit
-  //       await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet2.address, toWei('50'), ticket.address).returns()
-  //       await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet2.address, toWei('50'))
-  //
-  //       debug(`balanceOfCredit...`)
-  //       expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('5'))
-  //       expect(await call(prizePool, 'balanceOfCredit', wallet2.address, ticket.address)).to.equal(toWei('0.5'))
-  //     })
-  //
-  //     it('should allow a user to transfer to themselves', async () => {
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('100'))
-  //
-  //       debug(`calculateEarlyExitFee...`)
-  //       await prizePool.setCurrentTime(0)
-  //       // trigger credit init
-  //       await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, toWei('100'))
-  //
-  //       debug(`beforeTokenTransfer...`)
-  //       await prizePool.setCurrentTime(10)
-  //       await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet.address, toWei('50'), ticket.address).returns()
-  //       await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet.address, toWei('50'))
-  //
-  //       debug(`balanceOfCredit...`)
-  //       expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('10'))
-  //     })
-  //
-  //     it('should accrue credit to the sender, but ensure the new credit limit is respected', async () => {
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('100'))
-  //       await ticket.mock.balanceOf.withArgs(wallet2.address).returns(toWei('10'))
-  //
-  //       debug(`calculateEarlyExitFee...`)
-  //       await prizePool.setCurrentTime(0)
-  //       // trigger credit init
-  //       await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, 42)
-  //       await prizePool.calculateEarlyExitFee(wallet2.address, ticket.address, 42)
-  //
-  //       debug(`beforeTokenTransfer...`)
-  //       await prizePool.setCurrentTime(10)
-  //       // wallet should have accrued the maximum of 10
-  //       await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet2.address, toWei('50'), ticket.address).returns()
-  //       // now ensure credit is limited
-  //       await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet2.address, toWei('50'))
-  //
-  //       debug(`balanceOfCredit...`)
-  //       // credit should be limited to their *new* balance of 50
-  //       expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('5'))
-  //       expect(await call(prizePool, 'balanceOfCredit', wallet2.address, ticket.address)).to.equal(toWei('1'))
-  //     })
-  //   })
-  //
-  //   describe('initialize()', () => {
-  //     it('should set all the vars', async () => {
-  //       expect(await prizePool.token()).to.equal(erc20token.address)
-  //       expect(await prizePool.reserveRegistry()).to.equal(reserveRegistry.address)
-  //     })
-  //
-  //     it('should reject invalid params', async () => {
-  //       const _initArgs = [
-  //         reserveRegistry.address,
-  //         [ticket.address],
-  //         poolMaxExitFee,
-  //         yieldSourceStub.address
-  //       ]
-  //       let initArgs
-  //
-  //       debug('deploying secondary prizePool...')
-  //       const PrizePoolHarness = await hre.ethers.getContractFactory("PrizePoolHarness", wallet, overrides)
-  //       const prizePool2 = await PrizePoolHarness.deploy()
-  //
-  //       debug('testing initialization of secondary prizeStrategy...')
-  //
-  //       initArgs = _initArgs.slice(); initArgs[0] = AddressZero
-  //       await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith('PrizePool/reserveRegistry-not-zero')
-  //
-  //       initArgs = _initArgs.slice()
-  //       await ticket.mock.controller.returns(AddressZero)
-  //       await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith('PrizePool/token-ctrlr-mismatch')
-  //     })
-  //   })
-  //
-  //   describe('depositTo()', () => {
-  //     it('should revert when deposit exceeds liquidity cap', async () => {
-  //       const amount = toWei('1')
-  //       const liquidityCap = toWei('1000')
-  //
-  //       await ticket.mock.totalSupply.returns(liquidityCap)
-  //       await prizePool.setLiquidityCap(liquidityCap)
-  //
-  //       await expect(prizePool.depositTo(wallet2.address, amount, ticket.address, AddressZero))
-  //         .to.be.revertedWith("PrizePool/exceeds-liquidity-cap")
-  //     })
-  //   })
-  //
-  //   describe('captureAwardBalance()', () => {
-  //     it('should handle when the balance is less than the collateral', async () => {
-  //       await ticket.mock.totalSupply.returns(toWei('100'))
-  //       await yieldSourceStub.mock.balance.returns(toWei('99.9999'))
-  //
-  //       await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
-  //       expect(await prizePool.awardBalance()).to.equal(toWei('0'))
-  //     })
-  //
-  //     it('should handle the situ when the total accrued interest is less than the captured total', async () => {
-  //       await ticket.mock.totalSupply.returns(toWei('100'))
-  //       await yieldSourceStub.mock.balance.returns(toWei('110'))
-  //
-  //       await reserve.mock.reserveRateMantissa.returns('0')
-  //
-  //       // first capture the 10 tokens
-  //       await prizePool.captureAwardBalance()
-  //
-  //       await yieldSourceStub.mock.balance.returns(toWei('109.999'))
-  //       // now try to capture again
-  //       await expect(
-  //         prizePool.captureAwardBalance()
-  //       ).to.not.emit(prizePool, 'AwardCaptured')
-  //     })
-  //
-  //     it('should track the yield less the total token supply', async () => {
-  //       await ticket.mock.totalSupply.returns(toWei('100'))
-  //       await yieldSourceStub.mock.balance.returns(toWei('110'))
-  //       await reserve.mock.reserveRateMantissa.returns('0')
-  //
-  //       await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
-  //       expect(await prizePool.awardBalance()).to.equal(toWei('10'))
-  //     })
-  //
-  //     it('should capture the reserve fees', async () => {
-  //       const reserveFee = toWei('1')
-  //
-  //       await reserve.mock.reserveRateMantissa.returns(toWei('0.01'))
-  //
-  //       await ticket.mock.totalSupply.returns(toWei('1000'))
-  //       await yieldSourceStub.mock.balance.returns(toWei('1100'))
-  //
-  //       let tx = prizePool.captureAwardBalance()
-  //
-  //       await expect(tx)
-  //         .to.emit(prizePool, 'ReserveFeeCaptured')
-  //         .withArgs(reserveFee)
-  //
-  //       await expect(tx)
-  //         .to.emit(prizePool, 'AwardCaptured')
-  //         .withArgs(toWei('99'))
-  //
-  //       expect(await prizePool.awardBalance()).to.equal(toWei('99'))
-  //       expect(await prizePool.reserveTotalSupply()).to.equal(reserveFee)
-  //     })
-  //   })
-  //
-  //   describe('calculateReserveFee()', () => {
-  //     it('should return zero when no reserve fee is set', async () => {
-  //       await reserve.mock.reserveRateMantissa.returns(toWei('0'))
-  //       expect(await prizePool.calculateReserveFee(toWei('1'))).to.equal(toWei('0'))
-  //     })
-  //
-  //     it('should calculate an accurate reserve fee on a given amount', async () => {
-  //       await reserve.mock.reserveRateMantissa.returns(toWei('0.5'))
-  //       expect(await prizePool.calculateReserveFee(toWei('1'))).to.equal(toWei('0.5'))
-  //     })
-  //   })
-  //
-  //   describe('withdrawReserve()', () => {
-  //     it('should allow the reserve to be withdrawn', async () => {
-  //       await reserve.mock.reserveRateMantissa.returns(toWei('0.01'))
-  //
-  //       await ticket.mock.totalSupply.returns(toWei('1000'))
-  //       await yieldSourceStub.mock.balance.returns(toWei('1100'))
-  //
-  //       await erc20token.mock.transfer.withArgs(wallet.address, toWei('0.8')).returns(true)
-  //
-  //       // capture the reserve of 1 token
-  //       await prizePool.captureAwardBalance()
-  //
-  //       await yieldSourceStub.mock.redeem.withArgs(toWei('1')).returns(toWei('0.8'))
-  //
-  //       await reserve.call(prizePool, 'withdrawReserve', wallet.address)
-  //
-  //       expect(await prizePool.reserveTotalSupply()).to.equal('0')
-  //     })
-  //   })
-  //
-  //   describe('calculateEarlyExitFee', () => {
-  //     it('should return the early exit for for a withdrawal', async () => {
-  //       // Rate: 1%, Limit: 10%
-  //       await prizePool.setCreditPlanOf(ticket.address, toWei('0.01'), toWei('0.1'))
-  //
-  //       let amount = toWei('10')
-  //
-  //       // await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
-  //
-  //       // force current time
-  //       await prizePool.setCurrentTime('10')
-  //
-  //       // Full period early = 10%
-  //       expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
-  //         toWei('1'),
-  //         toWei('0')
-  //       ])
-  //       // accrue credit
-  //       await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, amount)
-  //
-  //       // move forward 5 seconds
-  //       await prizePool.setCurrentTime('15')
-  //
-  //       // credit should be included
-  //       expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
-  //         toWei('0.5'),
-  //         toWei('0.5')
-  //       ])
-  //
-  //       // accrue credit
-  //       await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, amount)
-  //       expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('0.5'))
-  //     })
-  //
-  //     it('should track credit accurately with tiny balances', async () => {
-  //       // Rate: 0.1%, Limit: 10%
-  //       await prizePool.setCreditPlanOf(ticket.address, toWei('0.001'), toWei('0.1'))
-  //
-  //       // user has 100 tickets
-  //       let amount = '100'
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
-  //
-  //       await prizePool.setCurrentTime('10')
-  //
-  //       expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
-  //         ethers.BigNumber.from('10'),
-  //         ethers.BigNumber.from('0')
-  //       ])
-  //
-  //       // init & accrue the credit
-  //       await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, amount)
-  //
-  //       // 12 seconds have passed, which means 1.2% has accrued, which is 1 "wei".
-  //       await prizePool.setCurrentTime('22')
-  //
-  //       expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
-  //         ethers.BigNumber.from('9'),
-  //         ethers.BigNumber.from('1')
-  //       ])
-  //     })
-  //   })
-  //
-  //   describe('withdrawInstantlyFrom()', () => {
-  //     it('should allow a user to withdraw instantly', async () => {
-  //       let amount = toWei('10')
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
-  //
-  //       await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
-  //       await yieldSourceStub.mock.redeem.withArgs(toWei('9')).returns(toWei('9'))
-  //       await erc20token.mock.transfer.withArgs(wallet.address, toWei('9')).returns(true)
-  //
-  //       await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('1')))
-  //         .to.emit(prizePool, 'InstantWithdrawal')
-  //         .withArgs(wallet.address, wallet.address, ticket.address, amount, toWei('9'), toWei('1'))
-  //     })
-  //
-  //     it('should only transfer to the user the amount that was redeemed', async () => {
-  //       let amount = toWei('10')
-  //       let redeemed = toWei('8')
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns('0')
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
-  //
-  //       await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
-  //       await yieldSourceStub.mock.redeem.withArgs(toWei('9')).returns(redeemed)
-  //       await erc20token.mock.transfer.withArgs(wallet.address, redeemed).returns(true)
-  //
-  //       await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('1')))
-  //         .to.emit(prizePool, 'InstantWithdrawal')
-  //         .withArgs(wallet.address, wallet.address, ticket.address, amount, redeemed, toWei('1'))
-  //     })
-  //
-  //     it('should allow a user to set a maximum exit fee', async () => {
-  //       let amount = toWei('10')
-  //       let fee = toWei('1')
-  //
-  //       let redeemed = amount.sub(fee)
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
-  //
-  //       await ticket.mock.controllerBurnFrom.withArgs(wallet2.address, wallet.address, amount).returns()
-  //       await yieldSourceStub.mock.redeem.withArgs(redeemed).returns(redeemed)
-  //       await erc20token.mock.transfer.withArgs(wallet.address, redeemed).returns(true)
-  //
-  //       await expect(prizePool.connect(wallet2).withdrawInstantlyFrom(wallet.address, amount, ticket.address, fee))
-  //         .to.emit(prizePool, 'InstantWithdrawal')
-  //         .withArgs(wallet2.address, wallet.address, ticket.address, amount, redeemed, fee)
-  //     })
-  //
-  //     it('should revert if fee exceeds the user maximum', async () => {
-  //       let amount = toWei('10')
-  //
-  //       const redeemed = toWei('9')
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
-  //
-  //       await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
-  //       await yieldSourceStub.mock.redeem.withArgs(redeemed).returns(redeemed)
-  //       await erc20token.mock.transfer.withArgs(wallet.address, toWei('10')).returns(true)
-  //
-  //       await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('0.3')))
-  //         .to.be.revertedWith('PrizePool/exit-fee-exceeds-user-maximum')
-  //     })
-  //
-  //     it('should limit the size of the fee', async () => {
-  //       let amount = toWei('20')
-  //
-  //       // fee is now 4/5 of the withdrawal amount
-  //       await prizePool.setCreditPlanOf(ticket.address, toWei('0.01'), toWei('0.8'))
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
-  //
-  //       await ticket.mock
-  //         .controllerBurnFrom
-  //         .withArgs(wallet.address, wallet.address, amount)
-  //         .returns()
-  //
-  //       await yieldSourceStub.mock
-  //         .redeem
-  //         .withArgs(toWei('10'))
-  //         .returns(toWei('10'))
-  //
-  //       await erc20token.mock
-  //         .transfer
-  //         .withArgs(wallet.address, toWei('10'))
-  //         .returns(true)
-  //
-  //
-  //       // max exit fee is 10, well above
-  //       await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('10')))
-  //         .to.emit(prizePool, 'InstantWithdrawal')
-  //         .withArgs(wallet.address, wallet.address, ticket.address, amount, toWei('10'), toWei('10'))
-  //     })
-  //
-  //     it('should not allow the prize-strategy to set exit fees exceeding the max', async () => {
-  //       let amount = toWei('10')
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
-  //
-  //       await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
-  //       await yieldSourceStub.mock.redeem.withArgs(toWei('10')).returns(toWei('10'))
-  //       await erc20token.mock.transfer.withArgs(wallet.address, toWei('10')).returns(true)
-  //
-  //       await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('0.3')))
-  //         .to.be.revertedWith('PrizePool/exit-fee-exceeds-user-maximum')
-  //     })
-  //
-  //     it('should not allow the prize-strategy to set exit fees exceeding the max', async () => {
-  //       let amount = toWei('11')
-  //
-  //       // updateAwardBalance
-  //       await yieldSourceStub.mock.balance.returns('0')
-  //       await ticket.mock.totalSupply.returns(amount)
-  //       await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
-  //
-  //       await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
-  //       await yieldSourceStub.mock.redeem.withArgs(toWei('10')).returns(toWei('10'))
-  //       await erc20token.mock.transfer.withArgs(wallet.address, toWei('10')).returns(true)
-  //
-  //       // PrizeStrategy exit fee: 100.0
-  //       // PrizePool max exit fee: 5.5  (should be capped at this)
-  //       // User max exit fee:      5.6
-  //       await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('5.6')))
-  //         .to.not.be.revertedWith('PrizePool/exit-fee-exceeds-user-maximum')
-  //     })
-  //   })
-  //
-  //   describe('balance()', () => {
-  //     it('should return zero if no deposits have been made', async () => {
-  //       await yieldSourceStub.mock.balance.returns(toWei('11'))
-  //
-  //       expect((await call(prizePool, 'balance')).toString()).to.equal(toWei('11'))
-  //     })
-  //   })
-  //
-  //   describe('tokens()', () => {
-  //     it('should return all tokens', async () => {
-  //       expect(await prizePool.tokens()).to.deep.equal([ticket.address])
-  //     })
-  //   })
-  //
-  //   describe('setPrizeStrategy()', () => {
-  //     it('should allow the owner to swap the prize strategy', async () => {
-  //       await expect(prizePool.setPrizeStrategy(prizeStrategy.address))
-  //         .to.emit(prizePool, 'PrizeStrategySet')
-  //         .withArgs(prizeStrategy.address)
-  //       expect(await prizePool.prizeStrategy()).to.equal(prizeStrategy.address)
-  //     })
-  //
-  //     it('should not allow anyone else to change the prize strategy', async () => {
-  //       await expect(prizePool.connect(wallet2).setPrizeStrategy(wallet2.address)).to.be.revertedWith("Ownable: caller is not the owner")
-  //     })
-  //   })
-  //
-  //   describe('setLiquidityCap', () => {
-  //     it('should allow the owner to set the liquidity cap', async () => {
-  //       const liquidityCap = toWei('1000')
-  //
-  //       await ticket.mock.totalSupply.returns('0')
-  //
-  //       await expect(prizePool.setLiquidityCap(liquidityCap))
-  //         .to.emit(prizePool, 'LiquidityCapSet')
-  //         .withArgs(liquidityCap)
-  //       expect(await prizePool.liquidityCap()).to.equal(liquidityCap)
-  //     })
-  //
-  //     it('should not allow anyone else to call', async () => {
-  //       prizePool2 = prizePool.connect(wallet2)
-  //       await expect(prizePool2.setLiquidityCap(toWei('1000'))).to.be.revertedWith('Ownable: caller is not the owner')
-  //     })
-  //   })
-  //
-  //   describe('compLikeDelegate()', () => {
-  //     it('should delegate votes', async () => {
-  //       await compLike.mock.balanceOf.withArgs(prizePool.address).returns('1')
-  //       await compLike.mock.delegate.withArgs(wallet2.address).revertsWithReason("hello")
-  //       await expect(prizePool.compLikeDelegate(compLike.address, wallet2.address)).to.be.revertedWith("hello")
-  //     })
-  //
-  //     it('should only allow the owner to delegate', async () => {
-  //       await expect(prizePool.connect(wallet2).compLikeDelegate(compLike.address, wallet2.address)).to.be.revertedWith("Ownable: caller is not the owner")
-  //     })
-  //
-  //     it('should not delegate if the balance is zero', async () => {
-  //       await compLike.mock.balanceOf.withArgs(prizePool.address).returns('0')
-  //       await prizePool.compLikeDelegate(compLike.address, wallet2.address)
-  //     })
-  //   })
-  // })
-  //
+  describe('with a mocked prize pool', () => {
+    beforeEach(async () => {
+      await prizePool.initializeAll(
+        reserveRegistry.address,
+        [ticket.address],
+        poolMaxExitFee,
+        storeRegistry.address,
+        yieldSourceStub.address
+      )
+      await prizePool.setPrizeStrategy(prizeStrategy.address)
+      // Credit rate is 1% per second, credit limit is 10%
+      await prizePool.setCreditPlanOf(ticket.address, toWei('0.01'), toWei('0.1'))
+    })
+
+    describe("beforeTokenTransfer()", () => {
+      it('should not allow uncontrolled tokens to call', async () => {
+        await expect(prizePool.beforeTokenTransfer(wallet.address, wallet2.address, toWei('1')))
+          .to.be.revertedWith('PrizePool/unknown-token')
+      })
+
+      it('should allow controlled tokens to call', async () => {
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
+        await ticket.mock.balanceOf.withArgs(wallet2.address).returns(toWei('10'))
+
+        await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet2.address, toWei('1'), ticket.address).returns()
+        await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet2.address, toWei('1'))
+      })
+
+      it('should accrue credit to the sender and receiver', async () => {
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('100'))
+        await ticket.mock.balanceOf.withArgs(wallet2.address).returns(toWei('10'))
+
+        debug(`calculateEarlyExitFee...`)
+        await prizePool.setCurrentTime(0)
+        // trigger credit init
+        await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, 42)
+        await prizePool.calculateEarlyExitFee(wallet2.address, ticket.address, 42)
+
+        debug(`beforeTokenTransfer...`)
+        await prizePool.setCurrentTime(5)
+        // wallet will have accrued 5 dai of credit
+        await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet2.address, toWei('50'), ticket.address).returns()
+        await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet2.address, toWei('50'))
+
+        debug(`balanceOfCredit...`)
+        expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('5'))
+        expect(await call(prizePool, 'balanceOfCredit', wallet2.address, ticket.address)).to.equal(toWei('0.5'))
+      })
+
+      it('should allow a user to transfer to themselves', async () => {
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('100'))
+
+        debug(`calculateEarlyExitFee...`)
+        await prizePool.setCurrentTime(0)
+        // trigger credit init
+        await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, toWei('100'))
+
+        debug(`beforeTokenTransfer...`)
+        await prizePool.setCurrentTime(10)
+        await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet.address, toWei('50'), ticket.address).returns()
+        await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet.address, toWei('50'))
+
+        debug(`balanceOfCredit...`)
+        expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('10'))
+      })
+
+      it('should accrue credit to the sender, but ensure the new credit limit is respected', async () => {
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('100'))
+        await ticket.mock.balanceOf.withArgs(wallet2.address).returns(toWei('10'))
+
+        debug(`calculateEarlyExitFee...`)
+        await prizePool.setCurrentTime(0)
+        // trigger credit init
+        await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, 42)
+        await prizePool.calculateEarlyExitFee(wallet2.address, ticket.address, 42)
+
+        debug(`beforeTokenTransfer...`)
+        await prizePool.setCurrentTime(10)
+        // wallet should have accrued the maximum of 10
+        await prizeStrategy.mock.beforeTokenTransfer.withArgs(wallet.address, wallet2.address, toWei('50'), ticket.address).returns()
+        // now ensure credit is limited
+        await ticket.call(prizePool, 'beforeTokenTransfer', wallet.address, wallet2.address, toWei('50'))
+
+        debug(`balanceOfCredit...`)
+        // credit should be limited to their *new* balance of 50
+        expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('5'))
+        expect(await call(prizePool, 'balanceOfCredit', wallet2.address, ticket.address)).to.equal(toWei('1'))
+      })
+    })
+
+    describe('initialize()', () => {
+      it('should set all the vars', async () => {
+        expect(await prizePool.token()).to.equal(erc20token.address)
+        expect(await prizePool.reserveRegistry()).to.equal(reserveRegistry.address)
+      })
+
+      it('should reject invalid params', async () => {
+        const _initArgs = [
+          reserveRegistry.address,
+          [ticket.address],
+          poolMaxExitFee,
+          storeRegistry.address,
+          yieldSourceStub.address
+        ]
+        let initArgs
+
+        debug('deploying secondary prizePool...')
+        const PrizePoolHarness = await hre.ethers.getContractFactory("PrizePoolHarness", wallet, overrides)
+        const prizePool2 = await PrizePoolHarness.deploy()
+
+        debug('testing initialization of secondary prizeStrategy...')
+
+        initArgs = _initArgs.slice(); initArgs[0] = AddressZero
+        await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith('PrizePool/reserveRegistry-not-zero')
+
+        initArgs = _initArgs.slice()
+        await ticket.mock.controller.returns(AddressZero)
+        await expect(prizePool2.initializeAll(...initArgs)).to.be.revertedWith('PrizePool/token-ctrlr-mismatch')
+      })
+    })
+
+    describe('depositTo()', () => {
+      it('should revert when deposit exceeds liquidity cap', async () => {
+        const amount = toWei('1')
+        const liquidityCap = toWei('1000')
+
+        await ticket.mock.totalSupply.returns(liquidityCap)
+        await prizePool.setLiquidityCap(liquidityCap)
+
+        await expect(prizePool.depositTo(wallet2.address, amount, ticket.address, AddressZero, AddressZero))
+          .to.be.revertedWith("PrizePool/exceeds-liquidity-cap")
+      })
+    })
+
+    describe('captureAwardBalance()', () => {
+      it('should handle when the balance is less than the collateral', async () => {
+        await ticket.mock.totalSupply.returns(toWei('100'))
+        await yieldSourceStub.mock.balance.returns(toWei('99.9999'))
+
+        await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
+        expect(await prizePool.awardBalance()).to.equal(toWei('0'))
+      })
+
+      it('should handle the situ when the total accrued interest is less than the captured total', async () => {
+        await ticket.mock.totalSupply.returns(toWei('100'))
+        await yieldSourceStub.mock.balance.returns(toWei('110'))
+
+        await reserve.mock.reserveRateMantissa.returns('0')
+
+        // first capture the 10 tokens
+        await prizePool.captureAwardBalance()
+
+        await yieldSourceStub.mock.balance.returns(toWei('109.999'))
+        // now try to capture again
+        await expect(
+          prizePool.captureAwardBalance()
+        ).to.not.emit(prizePool, 'AwardCaptured')
+      })
+
+      it('should track the yield less the total token supply', async () => {
+        await ticket.mock.totalSupply.returns(toWei('100'))
+        await yieldSourceStub.mock.balance.returns(toWei('110'))
+        await reserve.mock.reserveRateMantissa.returns('0')
+
+        await expect(prizePool.captureAwardBalance()).to.not.emit(prizePool, 'ReserveFeeCaptured');
+        expect(await prizePool.awardBalance()).to.equal(toWei('10'))
+      })
+
+      it('should capture the reserve fees', async () => {
+        const reserveFee = toWei('1')
+
+        await reserve.mock.reserveRateMantissa.returns(toWei('0.01'))
+
+        await ticket.mock.totalSupply.returns(toWei('1000'))
+        await yieldSourceStub.mock.balance.returns(toWei('1100'))
+
+        let tx = prizePool.captureAwardBalance()
+
+        await expect(tx)
+          .to.emit(prizePool, 'ReserveFeeCaptured')
+          .withArgs(reserveFee)
+
+        await expect(tx)
+          .to.emit(prizePool, 'AwardCaptured')
+          .withArgs(toWei('99'))
+
+        expect(await prizePool.awardBalance()).to.equal(toWei('99'))
+        expect(await prizePool.reserveTotalSupply()).to.equal(reserveFee)
+      })
+    })
+
+    describe('calculateReserveFee()', () => {
+      it('should return zero when no reserve fee is set', async () => {
+        await reserve.mock.reserveRateMantissa.returns(toWei('0'))
+        expect(await prizePool.calculateReserveFee(toWei('1'))).to.equal(toWei('0'))
+      })
+
+      it('should calculate an accurate reserve fee on a given amount', async () => {
+        await reserve.mock.reserveRateMantissa.returns(toWei('0.5'))
+        expect(await prizePool.calculateReserveFee(toWei('1'))).to.equal(toWei('0.5'))
+      })
+    })
+
+    describe('withdrawReserve()', () => {
+      it('should allow the reserve to be withdrawn', async () => {
+        await reserve.mock.reserveRateMantissa.returns(toWei('0.01'))
+
+        await ticket.mock.totalSupply.returns(toWei('1000'))
+        await yieldSourceStub.mock.balance.returns(toWei('1100'))
+
+        await erc20token.mock.transfer.withArgs(wallet.address, toWei('0.8')).returns(true)
+
+        // capture the reserve of 1 token
+        await prizePool.captureAwardBalance()
+
+        await yieldSourceStub.mock.redeem.withArgs(toWei('1')).returns(toWei('0.8'))
+
+        await reserve.call(prizePool, 'withdrawReserve', wallet.address)
+
+        expect(await prizePool.reserveTotalSupply()).to.equal('0')
+      })
+    })
+
+    describe('calculateEarlyExitFee', () => {
+      it('should return the early exit for for a withdrawal', async () => {
+        // Rate: 1%, Limit: 10%
+        await prizePool.setCreditPlanOf(ticket.address, toWei('0.01'), toWei('0.1'))
+
+        let amount = toWei('10')
+
+        // await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
+
+        // force current time
+        await prizePool.setCurrentTime('10')
+
+        // Full period early = 10%
+        expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
+          toWei('1'),
+          toWei('0')
+        ])
+        // accrue credit
+        await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, amount)
+
+        // move forward 5 seconds
+        await prizePool.setCurrentTime('15')
+
+        // credit should be included
+        expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
+          toWei('0.5'),
+          toWei('0.5')
+        ])
+
+        // accrue credit
+        await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, amount)
+        expect(await call(prizePool, 'balanceOfCredit', wallet.address, ticket.address)).to.equal(toWei('0.5'))
+      })
+
+      it('should track credit accurately with tiny balances', async () => {
+        // Rate: 0.1%, Limit: 10%
+        await prizePool.setCreditPlanOf(ticket.address, toWei('0.001'), toWei('0.1'))
+
+        // user has 100 tickets
+        let amount = '100'
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
+
+        await prizePool.setCurrentTime('10')
+
+        expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
+          ethers.BigNumber.from('10'),
+          ethers.BigNumber.from('0')
+        ])
+
+        // init & accrue the credit
+        await prizePool.calculateEarlyExitFee(wallet.address, ticket.address, amount)
+
+        // 12 seconds have passed, which means 1.2% has accrued, which is 1 "wei".
+        await prizePool.setCurrentTime('22')
+
+        expect(await call(prizePool, 'calculateEarlyExitFee', wallet.address, ticket.address, amount)).to.deep.equal([
+          ethers.BigNumber.from('9'),
+          ethers.BigNumber.from('1')
+        ])
+      })
+    })
+
+    describe('withdrawInstantlyFrom()', () => {
+      it('should allow a user to withdraw instantly', async () => {
+        let amount = toWei('10')
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
+
+        await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
+        await yieldSourceStub.mock.redeem.withArgs(toWei('9')).returns(toWei('9'))
+        await erc20token.mock.transfer.withArgs(wallet.address, toWei('9')).returns(true)
+
+        await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('1')))
+          .to.emit(prizePool, 'InstantWithdrawal')
+          .withArgs(wallet.address, wallet.address, ticket.address, amount, toWei('9'), toWei('1'))
+      })
+
+      it('should only transfer to the user the amount that was redeemed', async () => {
+        let amount = toWei('10')
+        let redeemed = toWei('8')
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns('0')
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
+
+        await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
+        await yieldSourceStub.mock.redeem.withArgs(toWei('9')).returns(redeemed)
+        await erc20token.mock.transfer.withArgs(wallet.address, redeemed).returns(true)
+
+        await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('1')))
+          .to.emit(prizePool, 'InstantWithdrawal')
+          .withArgs(wallet.address, wallet.address, ticket.address, amount, redeemed, toWei('1'))
+      })
+
+      it('should allow a user to set a maximum exit fee', async () => {
+        let amount = toWei('10')
+        let fee = toWei('1')
+
+        let redeemed = amount.sub(fee)
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
+
+        await ticket.mock.controllerBurnFrom.withArgs(wallet2.address, wallet.address, amount).returns()
+        await yieldSourceStub.mock.redeem.withArgs(redeemed).returns(redeemed)
+        await erc20token.mock.transfer.withArgs(wallet.address, redeemed).returns(true)
+
+        await expect(prizePool.connect(wallet2).withdrawInstantlyFrom(wallet.address, amount, ticket.address, fee))
+          .to.emit(prizePool, 'InstantWithdrawal')
+          .withArgs(wallet2.address, wallet.address, ticket.address, amount, redeemed, fee)
+      })
+
+      it('should revert if fee exceeds the user maximum', async () => {
+        let amount = toWei('10')
+
+        const redeemed = toWei('9')
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
+
+        await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
+        await yieldSourceStub.mock.redeem.withArgs(redeemed).returns(redeemed)
+        await erc20token.mock.transfer.withArgs(wallet.address, toWei('10')).returns(true)
+
+        await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('0.3')))
+          .to.be.revertedWith('PrizePool/exit-fee-exceeds-user-maximum')
+      })
+
+      it('should limit the size of the fee', async () => {
+        let amount = toWei('20')
+
+        // fee is now 4/5 of the withdrawal amount
+        await prizePool.setCreditPlanOf(ticket.address, toWei('0.01'), toWei('0.8'))
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
+
+        await ticket.mock
+          .controllerBurnFrom
+          .withArgs(wallet.address, wallet.address, amount)
+          .returns()
+
+        await yieldSourceStub.mock
+          .redeem
+          .withArgs(toWei('10'))
+          .returns(toWei('10'))
+
+        await erc20token.mock
+          .transfer
+          .withArgs(wallet.address, toWei('10'))
+          .returns(true)
+
+
+        // max exit fee is 10, well above
+        await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('10')))
+          .to.emit(prizePool, 'InstantWithdrawal')
+          .withArgs(wallet.address, wallet.address, ticket.address, amount, toWei('10'), toWei('10'))
+      })
+
+      it('should not allow the prize-strategy to set exit fees exceeding the max', async () => {
+        let amount = toWei('10')
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(amount)
+
+        await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
+        await yieldSourceStub.mock.redeem.withArgs(toWei('10')).returns(toWei('10'))
+        await erc20token.mock.transfer.withArgs(wallet.address, toWei('10')).returns(true)
+
+        await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('0.3')))
+          .to.be.revertedWith('PrizePool/exit-fee-exceeds-user-maximum')
+      })
+
+      it('should not allow the prize-strategy to set exit fees exceeding the max', async () => {
+        let amount = toWei('11')
+
+        // updateAwardBalance
+        await yieldSourceStub.mock.balance.returns('0')
+        await ticket.mock.totalSupply.returns(amount)
+        await ticket.mock.balanceOf.withArgs(wallet.address).returns(toWei('10'))
+
+        await ticket.mock.controllerBurnFrom.withArgs(wallet.address, wallet.address, amount).returns()
+        await yieldSourceStub.mock.redeem.withArgs(toWei('10')).returns(toWei('10'))
+        await erc20token.mock.transfer.withArgs(wallet.address, toWei('10')).returns(true)
+
+        // PrizeStrategy exit fee: 100.0
+        // PrizePool max exit fee: 5.5  (should be capped at this)
+        // User max exit fee:      5.6
+        await expect(prizePool.withdrawInstantlyFrom(wallet.address, amount, ticket.address, toWei('5.6')))
+          .to.not.be.revertedWith('PrizePool/exit-fee-exceeds-user-maximum')
+      })
+    })
+
+    describe('balance()', () => {
+      it('should return zero if no deposits have been made', async () => {
+        await yieldSourceStub.mock.balance.returns(toWei('11'))
+
+        expect((await call(prizePool, 'balance')).toString()).to.equal(toWei('11'))
+      })
+    })
+
+    describe('tokens()', () => {
+      it('should return all tokens', async () => {
+        expect(await prizePool.tokens()).to.deep.equal([ticket.address])
+      })
+    })
+
+    describe('setPrizeStrategy()', () => {
+      it('should allow the owner to swap the prize strategy', async () => {
+        await expect(prizePool.setPrizeStrategy(prizeStrategy.address))
+          .to.emit(prizePool, 'PrizeStrategySet')
+          .withArgs(prizeStrategy.address)
+        expect(await prizePool.prizeStrategy()).to.equal(prizeStrategy.address)
+      })
+
+      it('should not allow anyone else to change the prize strategy', async () => {
+        await expect(prizePool.connect(wallet2).setPrizeStrategy(wallet2.address)).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    describe('setLiquidityCap', () => {
+      it('should allow the owner to set the liquidity cap', async () => {
+        const liquidityCap = toWei('1000')
+
+        await ticket.mock.totalSupply.returns('0')
+
+        await expect(prizePool.setLiquidityCap(liquidityCap))
+          .to.emit(prizePool, 'LiquidityCapSet')
+          .withArgs(liquidityCap)
+        expect(await prizePool.liquidityCap()).to.equal(liquidityCap)
+      })
+
+      it('should not allow anyone else to call', async () => {
+        prizePool2 = prizePool.connect(wallet2)
+        await expect(prizePool2.setLiquidityCap(toWei('1000'))).to.be.revertedWith('Ownable: caller is not the owner')
+      })
+    })
+
+    describe('compLikeDelegate()', () => {
+      it('should delegate votes', async () => {
+        await compLike.mock.balanceOf.withArgs(prizePool.address).returns('1')
+        await compLike.mock.delegate.withArgs(wallet2.address).revertsWithReason("hello")
+        await expect(prizePool.compLikeDelegate(compLike.address, wallet2.address)).to.be.revertedWith("hello")
+      })
+
+      it('should only allow the owner to delegate', async () => {
+        await expect(prizePool.connect(wallet2).compLikeDelegate(compLike.address, wallet2.address)).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+
+      it('should not delegate if the balance is zero', async () => {
+        await compLike.mock.balanceOf.withArgs(prizePool.address).returns('0')
+        await prizePool.compLikeDelegate(compLike.address, wallet2.address)
+      })
+    })
+  })
+
   // describe('with a multi-token prize pool', () => {
   //
   //   beforeEach(async () => {
@@ -650,7 +652,7 @@ describe('PrizePool', function() {
   //     })
   //   })
   // })
-  //
+
   // describe('awardExternalERC20()', () => {
   //   beforeEach(async () => {
   //     await prizePool.initializeAll(
@@ -684,7 +686,7 @@ describe('PrizePool', function() {
   //       .withArgs(wallet.address, erc20token.address, toWei('10'))
   //   })
   // })
-  //
+
   // describe('transferExternalERC20()', () => {
   //   beforeEach(async () => {
   //     await prizePool.initializeAll(
@@ -719,7 +721,7 @@ describe('PrizePool', function() {
   //   })
   //
   // })
-  //
+
   // describe('awardExternalERC721()', () => {
   //   beforeEach(async () => {
   //     await prizePool.initializeAll(
@@ -762,7 +764,7 @@ describe('PrizePool', function() {
   //     .to.emit(prizePool, 'ErrorAwardingExternalERC721')
   //   })
   // })
-  //
+
   // describe('onERC721Received()', () => {
   //   beforeEach(async () => {
   //     await prizePool.initializeAll(
