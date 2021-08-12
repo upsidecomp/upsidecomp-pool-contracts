@@ -10,26 +10,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "./../utils/MappedSinglyLinkedList.sol";
 
-
-contract ERC721StoreCredit is ERC721Store {
-  struct CreditBalance {
-    uint192 balance;
-    uint32 timestamp;
-    bool initialized;
-  }
-
-  /// @dev Stores each users balance of credit per token.
-  mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
-
-  function initialize (
-    string memory name,
-    string memory symbol,
-    address manager
-  ) public initialize {
-    ERC721Store.initialize(name, symbol, manager);
-  }
-}
-
 /**
  * Mint a single ERC721 which can hold NFTs
  */
@@ -51,10 +31,10 @@ contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeabl
       string memory symbol,
       address manager
     ) public initializer {
-        _mint(msg.sender, 0);
-
         __ERC721_init(name, symbol);
         __Ownable_init();
+
+        _mint(msg.sender, 0);
 
         store.initialize();
 
@@ -97,4 +77,15 @@ contract ERC721Store is Initializable, ERC721Upgradeable, ERC721HolderUpgradeabl
         require(manager == _manager, "not manager");
         _;
     }
+}
+
+contract ERC721StoreCredit is ERC721Store {
+  struct CreditBalance {
+    uint192 balance;
+    uint32 timestamp;
+    bool initialized;
+  }
+
+  /// @dev Stores each users balance of credit per token.
+  mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
 }
