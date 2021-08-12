@@ -2,9 +2,9 @@
 
 pragma solidity 0.6.12;
 
-import "./store/Store.sol";
+import "./Store.sol";
 
-contract StoreBasic is Store {
+abstract contract StoreBasic is Store {
   string private _name;
   string private _symbol;
 

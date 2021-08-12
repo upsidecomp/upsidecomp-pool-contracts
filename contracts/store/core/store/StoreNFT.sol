@@ -3,9 +3,9 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "./store/Store.sol";
+import "./Store.sol";
 
-contract StoreNFT is Store, ERC721Upgradeable {
+abstract contract StoreNFT is Store, ERC721Upgradeable {
   function initialize (
     address manager,
     string memory name,

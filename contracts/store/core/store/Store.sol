@@ -5,7 +5,7 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "../interfaces/IStore.sol";
+import "../interfaces/store/IStore.sol";
 
 abstract contract Store is IStore, Initializable, ERC721HolderUpgradeable {
   address private _manager;
