@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 
 pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "sortition-sum-tree-factory/contracts/SortitionSumTreeFactory.sol";
-import "@pooltogether/uniform-random-number/contracts/UniformRandomNumber.sol";
 
 import "./ERC721Store.sol";
 import "./ERC721StoreDraw.sol";
@@ -19,17 +18,16 @@ import "./../utils/MappedSinglyLinkedList.sol";
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract ERC721StoreRegistry is ERC721StoreDraw, StoreRegistry, ReentrancyGuardUpgradeable {
+contract ERC721StoreRegistry is ERC721StoreDraw, StoreRegistry, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
-    using SortitionSumTreeFactory for SortitionSumTreeFactory.SortitionSumTrees;
 
     PrizePool public prizePool;
 
     function initialize(PrizePool _prizePool) public initializer {
         require(address(_prizePool) != address(0), "ERC721StoreRegistry/prize-pool-not-zero");
 
-        StoreRegistry.initialize();
+        __Ownable_init();
 
         prizePool = _prizePool;
     }

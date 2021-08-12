@@ -12,7 +12,7 @@ import "./core/registry/StoreRegistry.sol";
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract ERC721StoreDraw {
+abstract contract ERC721StoreDraw {
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
     using SortitionSumTreeFactory for SortitionSumTreeFactory.SortitionSumTrees;
@@ -30,7 +30,7 @@ contract ERC721StoreDraw {
     }
 
     /// @notice Returns the user's chance of winning.
-    function chanceOf(address store, address user) external view returns (uint256) {
+    function _chanceOf(address store, address user) internal view returns (uint256) {
       return sortitionSumTrees.stakeOf(keccak256(abi.encodePacked(store)), bytes32(uint256(user)));
     }
 
