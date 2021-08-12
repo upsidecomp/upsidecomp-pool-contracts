@@ -32,12 +32,13 @@ abstract contract StoreRegistry is IStoreRegistry, Initializable, OwnableUpgrade
     function deposit(address store, address from, uint256 amount) external override virtual;
     function withdraw(address store, address to, uint256 amount) external override virtual;
 
-    function _deposit(address store, address from, uint256 amount) internal {
+    function _deposit(address store, address from, uint256 amount) internal returns (uint256) {
       _storesTotalSupply[IStore(store)] = _storesTotalSupply[IStore(store)].add(amount);
       _storesBalance[IStore(store)][from] = _storesBalance[IStore(store)][from].add(amount);
+      return _storesBalance[IStore(store)][from];
     }
 
-    function _withdraw(address store, address to, uint256 amount) internal {
+    function _withdraw(address store, address to, uint256 amount) internal returns (uint256) {
       _storesTotalSupply[IStore(store)] = _storesTotalSupply[IStore(store)].sub(amount);
       _storesBalance[IStore(store)][to] = _storesBalance[IStore(store)][to].sub(amount);
     }

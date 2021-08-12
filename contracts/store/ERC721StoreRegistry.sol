@@ -25,7 +25,6 @@ contract ERC721StoreRegistry is StoreRegistry, ReentrancyGuardUpgradeable {
 
     // Ticket-weighted odds
     SortitionSumTreeFactory.SortitionSumTrees internal sortitionSumTrees;
-    bytes32 constant private TREE_KEY = keccak256("Upside/Ticket");
     uint256 constant private MAX_TREE_LEAVES = 5;
 
     PrizePool public prizePool;
@@ -61,18 +60,12 @@ contract ERC721StoreRegistry is StoreRegistry, ReentrancyGuardUpgradeable {
     }
 
     function deposit(address store, address from, uint256 amount) external onlyStore(store) onlyPrizePool override {
-      uint256 newBalance = _balanceOf(store, from).sub(amount);
-
-      super._deposit(store, from, amount);
-
+      uint256 newBalance = super._deposit(store, from, amount);
       sortitionSumTrees.set(keccak256(abi.encodePacked(store)), newBalance, bytes32(uint256(from)));
     }
 
     function withdraw(address store, address to, uint256 amount) external onlyStore(store) onlyPrizePool override {
-        uint256 newBalance = _balanceOf(store, to).sub(amount);
-
-        super._withdraw(store, to, amount);
-
+        uint256 newBalance = super._withdraw(store, to, amount);
         sortitionSumTrees.set(keccak256(abi.encodePacked(store)), newBalance, bytes32(uint256(to)));
     }
 
