@@ -10,6 +10,7 @@ import "sortition-sum-tree-factory/contracts/SortitionSumTreeFactory.sol";
 import "@pooltogether/uniform-random-number/contracts/UniformRandomNumber.sol";
 
 import "./ERC721Store.sol";
+import "./ERC721StoreDraw.sol";
 import "./core/registry/StoreRegistry.sol";
 
 import "./../prize-pool/PrizePool.sol";
@@ -18,14 +19,10 @@ import "./../utils/MappedSinglyLinkedList.sol";
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract ERC721StoreRegistry is StoreRegistry, ReentrancyGuardUpgradeable {
+contract ERC721StoreRegistry is ERC721StoreDraw, StoreRegistry, ReentrancyGuardUpgradeable {
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
     using SortitionSumTreeFactory for SortitionSumTreeFactory.SortitionSumTrees;
-
-    // Ticket-weighted odds
-    SortitionSumTreeFactory.SortitionSumTrees internal sortitionSumTrees;
-    uint256 constant private MAX_TREE_LEAVES = 5;
 
     PrizePool public prizePool;
 
@@ -50,7 +47,7 @@ contract ERC721StoreRegistry is StoreRegistry, ReentrancyGuardUpgradeable {
 
         super._register(s);
 
-        sortitionSumTrees.createTree(keccak256(abi.encodePacked(address(s))), MAX_TREE_LEAVES);
+        super._createTree(address(s));
 
         return address(s);
     }
@@ -61,32 +58,16 @@ contract ERC721StoreRegistry is StoreRegistry, ReentrancyGuardUpgradeable {
 
     function deposit(address store, address from, uint256 amount) external onlyStore(store) onlyPrizePool override {
       uint256 newBalance = super._deposit(store, from, amount);
-      sortitionSumTrees.set(keccak256(abi.encodePacked(store)), newBalance, bytes32(uint256(from)));
+      super._update(store, from, newBalance);
     }
 
     function withdraw(address store, address to, uint256 amount) external onlyStore(store) onlyPrizePool override {
         uint256 newBalance = super._withdraw(store, to, amount);
-        sortitionSumTrees.set(keccak256(abi.encodePacked(store)), newBalance, bytes32(uint256(to)));
+        super._update(store, to, newBalance);
     }
 
-    /// @notice Returns the user's chance of winning.
-    function chanceOf(address store, address user) external view returns (uint256) {
-      return sortitionSumTrees.stakeOf(keccak256(abi.encodePacked(store)), bytes32(uint256(user)));
-    }
-
-    /// @notice Selects a user using a random number.  The random number will be uniformly bounded to the ticket totalSupply.
-    /// @param randomNumber The random number to use to select a user.
-    /// @return The winner
     function draw(address store, uint256 randomNumber) external view returns (address) {
-      uint256 bound = totalSupply(store);
-      address selected;
-      if (bound == 0) {
-        selected = address(0);
-      } else {
-        uint256 token = UniformRandomNumber.uniform(randomNumber, bound);
-        selected = address(uint256(sortitionSumTrees.draw(keccak256(abi.encodePacked(store)), token)));
-      }
-      return selected;
+      return super._draw(store, randomNumber, totalSupply(store));
     }
 
     modifier onlyPrizePool() {
