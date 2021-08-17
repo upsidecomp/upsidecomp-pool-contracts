@@ -72,6 +72,16 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
     address referrer
   );
 
+  struct CreditPlan {
+    uint128 creditLimitMantissa;
+    uint128 creditRateMantissa;
+  }
+
+  struct CreditBalance {
+    uint192 balance;
+    uint32 timestamp;
+    bool initialized;
+  }
 
   ControlledTokenInterface[] internal _tokens;
 
@@ -80,6 +90,8 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
   uint256 public maxExitFeeMantissa;
 
   uint256 public liquidityCap;
+
+  mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
 
   function initialize (
     ControlledTokenInterface[] memory _controlledTokens,
@@ -95,6 +107,7 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
       ControlledTokenInterface controlledToken = _controlledTokens[i];
       _addControlledToken(controlledToken, i);
     }
+
     __Ownable_init();
     __ReentrancyGuard_init();
     _setLiquidityCap(uint256(-1));
@@ -102,6 +115,20 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
     maxExitFeeMantissa = _maxExitFeeMantissa;
 
     emit Initialized(maxExitFeeMantissa);
+  }
+
+  function token() external view returns (address) {
+    return address(_token());
+  }
+
+  /// @dev Returns the total underlying balance of all assets. This includes both principal and interest.
+  /// @return The underlying balance of assets
+  function balance() external returns (uint256) {
+    return _balance();
+  }
+
+  function canAwardExternal(address _externalToken) external view returns (bool) {
+    return _canAwardExternal(_externalToken);
   }
 
   function depositTo(
@@ -144,6 +171,44 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
     _token().safeTransfer(from, amount);
 
     emit InstantWithdrawal(operator, from, controlledToken, amount);
+  }
+
+  function _calculateEarlyExitFeeLessBurnedCredit(
+    address from,
+    address controlledToken,
+    uint256 amount
+  )
+    internal
+    returns (
+      uint256 earlyExitFee,
+      uint256 creditBurned
+    )
+  {
+    uint256 controlledTokenBalance = IERC20Upgradeable(controlledToken).balanceOf(from);
+    require(controlledTokenBalance >= amount, "PrizePool/insuff-funds");
+    _accrueCredit(from, controlledToken, controlledTokenBalance, 0);
+    /*
+    The credit is used *last*.  Always charge the fees up-front.
+
+    How to calculate:
+
+    Calculate their remaining exit fee.  I.e. full exit fee of their balance less their credit.
+
+    If the exit fee on their withdrawal is greater than the remaining exit fee, then they'll have to pay the difference.
+    */
+
+    // Determine available usable credit based on withdraw amount
+    uint256 remainingExitFee = _calculateEarlyExitFeeNoCredit(controlledToken, controlledTokenBalance.sub(amount));
+
+    uint256 availableCredit;
+    if (_tokenCreditBalances[controlledToken][from].balance >= remainingExitFee) {
+      availableCredit = uint256(_tokenCreditBalances[controlledToken][from].balance).sub(remainingExitFee);
+    }
+
+    // Determine amount of credit to burn and amount of fees required
+    uint256 totalExitFee = _calculateEarlyExitFeeNoCredit(controlledToken, amount);
+    creditBurned = (availableCredit > totalExitFee) ? totalExitFee : availableCredit;
+    earlyExitFee = totalExitFee.sub(creditBurned);
   }
 
   function beforeTokenTransfer(address from, address to, uint256 amount)
@@ -223,10 +288,6 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
   // todo: fix
   function _token() internal virtual view returns (IERC20Upgradeable);
 
-  function canAwardExternal(address _externalToken) external view returns (bool) {
-    return _canAwardExternal(_externalToken);
-  }
-
   // todo: fix
   function _canAwardExternal(address _externalToken) internal virtual view returns (bool);
 
@@ -262,12 +323,6 @@ abstract contract PrizePool is OwnableUpgradeable, ReentrancyGuardUpgradeable, T
     // override
     view returns (ControlledTokenInterface[] memory) {
     return _tokens;
-  }
-
-  /// @dev Returns the total underlying balance of all assets. This includes both principal and interest.
-  /// @return The underlying balance of assets
-  function balance() external returns (uint256) {
-    return _balance();
   }
 
   function _balance() internal virtual returns (uint256);

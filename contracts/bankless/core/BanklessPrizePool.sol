@@ -43,6 +43,7 @@ contract BanklessPrizePool is PrizePool {
     return _externalToken != address(bank);
   }
 
+
   function _token() internal override view returns (IERC20Upgradeable) {
     return bank;
   }
