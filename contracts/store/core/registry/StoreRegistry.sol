@@ -15,8 +15,14 @@ abstract contract StoreRegistry is IStoreRegistry  {
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
 
+    struct CreditBalance {
+      uint192 balance;
+      uint32 timestamp;
+      bool initialized;
+    }
+
     mapping(IStore => bool) internal _stores;
-    mapping(IStore => mapping(address => uint256)) internal _storesBalance;
+    mapping(IStore => mapping(address => CreditBalance)) internal _storesBalance;
     mapping(IStore => uint256) _storesTotalSupply;
 
     function register(string memory name, string memory symbol) external override virtual returns (address);
@@ -26,14 +32,39 @@ abstract contract StoreRegistry is IStoreRegistry  {
     function withdraw(address store, address to, uint256 amount) external override virtual;
 
     function _deposit(address store, address from, uint256 amount) internal returns (uint256) {
+      require(amount > 0, "StoreRegistry/deposit-amount-more-than-zero");
+
+      uint256 balance = _balanceOf(store, from);
+      uint192 newBalance = balance.sub(amount).toUint128();
+
       _storesTotalSupply[IStore(store)] = _storesTotalSupply[IStore(store)].add(amount);
-      _storesBalance[IStore(store)][from] = _storesBalance[IStore(store)][from].add(amount);
-      return _storesBalance[IStore(store)][from];
+
+      _storesBalance[IStore(store)][from] = CreditBalance({
+        balance: newBalance,
+        timestamp: block.timestamp.toUint32(),
+        initialized: true
+      });
+
+      return newBalance;
     }
 
     function _withdraw(address store, address to, uint256 amount) internal returns (uint256) {
+      require(amount > 0, "StoreRegistry/withdraw-amount-more-than-zero");
+
+      uint256 balance = _balanceOf(store, to);
+
+      require(amount <= balance, "StoreRegistry/withdraw-amount-exceeds-max");
+
+      uint192 newBalance = balance.sub(amount).toUint128();
+
       _storesTotalSupply[IStore(store)] = _storesTotalSupply[IStore(store)].sub(amount);
-      _storesBalance[IStore(store)][to] = _storesBalance[IStore(store)][to].sub(amount);
+      _storesBalance[IStore(store)][to] = CreditBalance({
+              balance: newBalance,
+              timestamp: block.timestamp.toUint32(),
+              initialized: true
+      });
+
+      return newBalance;
     }
 
     function _register(IStore store) internal {
@@ -53,7 +84,7 @@ abstract contract StoreRegistry is IStoreRegistry  {
     }
 
     function _balanceOf(address store, address user) internal view returns (uint256) {
-      return _storesBalance[IStore(store)][user];
+      return _storesBalance[IStore(store)][user].balance;
     }
 
     function totalSupply(address store) internal view returns (uint256) {

@@ -3,16 +3,13 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
+
 import "sortition-sum-tree-factory/contracts/SortitionSumTreeFactory.sol";
 import "@pooltogether/uniform-random-number/contracts/UniformRandomNumber.sol";
 
-import "./ERC721Store.sol";
-import "./core/registry/StoreRegistry.sol";
-
-/**
- * Mint a single ERC721 which can hold NFTs
- */
-abstract contract ERC721StoreDraw {
+abstract contract Draw {
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
     using SortitionSumTreeFactory for SortitionSumTreeFactory.SortitionSumTrees;

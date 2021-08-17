@@ -7,9 +7,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./ERC721Store.sol";
-import "./ERC721StoreDraw.sol";
+import "./core/draw/Draw.sol";
 import "./core/registry/StoreRegistry.sol";
 
 import "./../prize-pool/PrizePool.sol";
@@ -18,18 +19,27 @@ import "./../utils/MappedSinglyLinkedList.sol";
 /**
  * Mint a single ERC721 which can hold NFTs
  */
-contract ERC721StoreRegistry is ERC721StoreDraw, StoreRegistry, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+contract ERC721StoreRegistry is Draw, StoreRegistry, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeMathUpgradeable for uint256;
     using SafeCastUpgradeable for uint256;
 
     PrizePool public prizePool;
+    IERC20Upgradeable public ticket;
 
-    function initialize(PrizePool _prizePool) public initializer {
+    function initialize(
+      PrizePool _prizePool,
+      IERC20Upgradeable _ticket
+    )
+      public
+      initializer
+    {
         require(address(_prizePool) != address(0), "ERC721StoreRegistry/prize-pool-not-zero");
+        require(address(_ticket) != address(0), "ERC721StoreRegistry/ticket-not-zero");
 
         __Ownable_init();
 
         prizePool = _prizePool;
+        ticket = _ticket;
     }
 
     function register(string memory name, string memory symbol)
@@ -51,7 +61,7 @@ contract ERC721StoreRegistry is ERC721StoreDraw, StoreRegistry, ReentrancyGuardU
     }
 
     function deregister(address store) external override returns (bool) {
-        // todo: fix
+        // todo
     }
 
     function deposit(address store, address from, uint256 amount) external onlyStore(store) onlyPrizePool override {

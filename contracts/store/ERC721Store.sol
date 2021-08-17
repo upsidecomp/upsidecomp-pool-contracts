@@ -46,14 +46,3 @@ contract ERC721Store is StoreNFT, OwnableUpgradeable {
     }
   }
 }
-
-contract ERC721StoreCredit is ERC721Store {
-  struct CreditBalance {
-    uint192 balance;
-    uint32 timestamp;
-    bool initialized;
-  }
-
-  /// @dev Stores each users balance of credit per token.
-  mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
-}
