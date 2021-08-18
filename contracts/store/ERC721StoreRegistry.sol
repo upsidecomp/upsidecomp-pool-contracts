@@ -26,9 +26,14 @@ contract ERC721StoreRegistry is Draw, StoreRegistry, ReentrancyGuardUpgradeable,
     PrizePool public prizePool;
     IERC20Upgradeable public ticket;
 
+    uint256 public maxExitFeeMantissa;
+
+    uint256 public liquidityCap;
+
     function initialize(
       PrizePool _prizePool,
-      IERC20Upgradeable _ticket
+      IERC20Upgradeable _ticket,
+      uint256 _maxExitFeeMantissa
     )
       public
       initializer
@@ -38,6 +43,8 @@ contract ERC721StoreRegistry is Draw, StoreRegistry, ReentrancyGuardUpgradeable,
 
         __Ownable_init();
 
+        liquidityCap = -1;
+        maxExitFeeMantissa = _maxExitFeeMantissa;
         prizePool = _prizePool;
         ticket = _ticket;
     }
