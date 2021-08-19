@@ -19,7 +19,8 @@ interface PrizePoolInterface {
     address to,
     uint256 amount,
     address controlledToken,
-    address referrer
+    address referrer,
+    address store
   )
     external;
 
@@ -47,7 +48,7 @@ interface PrizePoolInterface {
   /// @notice Captures any available interest as award balance.
   /// @dev This function also captures the reserve fees.
   /// @return The total amount of assets to be awarded for the current prize
-  function captureAwardBalance() external returns (uint256);
+  function captureAwardBalance(address store) external returns (uint256);
 
   /// @notice Called by the prize strategy to award prizes.
   /// @dev The amount awarded must be less than the awardBalance()

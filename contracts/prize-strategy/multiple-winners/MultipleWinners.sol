@@ -10,7 +10,7 @@ contract MultipleWinners is PeriodicPrizeStrategy, PrizeSplit {
 
   // Maximum number number of winners per award distribution period
   uint256 internal __numberOfWinners;
-  
+
   // Toggle for distributing external ERC 20 awards to all winners
   bool public splitExternalErc20Awards;
 
@@ -54,7 +54,7 @@ contract MultipleWinners is PeriodicPrizeStrategy, PrizeSplit {
   /**
     * @notice Emitted when a new draw retry limit is set.
     * @dev Emitted when a new draw retry limit is set. Retry limit is set to limit gas spendings if a blocked user continues to be drawn.
-    * @param count Number of winner selection retry attempts 
+    * @param count Number of winner selection retry attempts
   */
   event BlocklistRetryCountSet(uint256 count);
 
@@ -66,7 +66,7 @@ contract MultipleWinners is PeriodicPrizeStrategy, PrizeSplit {
   event RetryMaxLimitReached(uint256 numberOfWinners);
 
   /**
-    * @notice Emitted when no winner can be selected during the prize distribution. 
+    * @notice Emitted when no winner can be selected during the prize distribution.
     * @dev Emitted when no winner can be selected in _distribute due to ticket.totalSupply() equaling zero.
   */
   event NoWinners();
@@ -110,8 +110,8 @@ contract MultipleWinners is PeriodicPrizeStrategy, PrizeSplit {
   }
 
   /**
-    * @notice Toggle if an unawarded prize amount should be kept for the next draw or evenly distrubted to selected winners. 
-    * @dev Toggles if the main prize (prizePool.captureAwardBalance) and secondary prizes (LootBox) should be kept for the next draw or evenly distrubted if maximum number of winners is not selected. 
+    * @notice Toggle if an unawarded prize amount should be kept for the next draw or evenly distrubted to selected winners.
+    * @dev Toggles if the main prize (prizePool.captureAwardBalance) and secondary prizes (LootBox) should be kept for the next draw or evenly distrubted if maximum number of winners is not selected.
     * @param _carry Award carry over status (true or false)
   */
   function setCarryBlocklist(bool _carry) external onlyOwner requireAwardNotInProgress returns (bool) {
@@ -134,7 +134,7 @@ contract MultipleWinners is PeriodicPrizeStrategy, PrizeSplit {
 
     return true;
   }
-  
+
   /**
     * @notice Toggle external ERC20 awards for all prize winners.
     * @dev Toggle external ERC20 awards for all prize winners. If unset will distribute external ERC20 awards to main winner.
@@ -192,8 +192,8 @@ contract MultipleWinners is PeriodicPrizeStrategy, PrizeSplit {
     * @param randomNumber Random number seed used to select winners
   */
   function _distribute(uint256 randomNumber) internal override {
-    uint256 prize = prizePool.captureAwardBalance();
-    
+    uint256 prize = prizePool.captureAwardBalance(address(0)); // fix address(0)
+
     // distributes prize to prize splits and returns remaining award.
     prize = _distributePrizeSplits(prize);
 

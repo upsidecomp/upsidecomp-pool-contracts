@@ -20,6 +20,7 @@ import "../token/ControlledToken.sol";
 import "../token/TokenControllerInterface.sol";
 import "../utils/MappedSinglyLinkedList.sol";
 import "./PrizePoolInterface.sol";
+import "./../store/ERC721StoreRegistry.sol";
 
 /// @title Escrows assets and deposits them into a yield source.  Exposes interest to Prize Strategy.  Users deposit and withdraw from this contract to participate in Prize Pool.
 /// @notice Accounting is managed using Controlled Tokens, whose mint and burn functions can only be called by this contract.
@@ -35,6 +36,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @dev Emitted when an instance is initialized
   event Initialized(
     address reserveRegistry,
+    address storeRegistry,
     uint256 maxExitFeeMantissa
   );
 
@@ -181,13 +183,17 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @dev Stores each users balance of credit per token.
   mapping(address => mapping(address => CreditBalance)) internal _tokenCreditBalances;
 
+  /// @dev A registry that manages ERC721Stores
+  ERC721StoreRegistry public storeRegistry;
+
   /// @notice Initializes the Prize Pool
   /// @param _controlledTokens Array of ControlledTokens that are controlled by this Prize Pool.
   /// @param _maxExitFeeMantissa The maximum exit fee size
   function initialize (
     RegistryInterface _reserveRegistry,
     ControlledTokenInterface[] memory _controlledTokens,
-    uint256 _maxExitFeeMantissa
+    uint256 _maxExitFeeMantissa,
+    ERC721StoreRegistry _storeRegistry
   )
     public
     initializer
@@ -205,10 +211,13 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     _setLiquidityCap(uint256(-1));
 
     reserveRegistry = _reserveRegistry;
+    storeRegistry = _storeRegistry;
+
     maxExitFeeMantissa = _maxExitFeeMantissa;
 
     emit Initialized(
       address(_reserveRegistry),
+      address(_storeRegistry),
       maxExitFeeMantissa
     );
   }
@@ -221,8 +230,8 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @dev Returns the total underlying balance of all assets. This includes both principal and interest.
   /// @return The underlying balance of assets
-  function balance() external returns (uint256) {
-    return _balance();
+  function balance(address store) external returns (uint256) {
+    return _balance(store);
   }
 
   /// @dev Checks with the Prize Pool if a specific token type may be awarded as an external prize
@@ -241,19 +250,24 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     address to,
     uint256 amount,
     address controlledToken,
-    address referrer
+    address referrer,
+    address store
   )
     external override
     nonReentrant
     onlyControlledToken(controlledToken)
     canAddLiquidity(amount)
+    onlyStoreInRegistry(store)
   {
     address operator = _msgSender();
 
-    _mint(to, amount, controlledToken, referrer);
+    _mint(store, amount, controlledToken, referrer);
 
     _token().safeTransferFrom(operator, address(this), amount);
-    _supply(amount);
+
+    _supply(amount, store);
+
+    storeRegistry.deposit(store, to, amount);
 
     emit Deposited(operator, to, controlledToken, amount, referrer);
   }
@@ -343,11 +357,11 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @notice Captures any available interest as award balance.
   /// @dev This function also captures the reserve fees.
   /// @return The total amount of assets to be awarded for the current prize
-  function captureAwardBalance() external override nonReentrant returns (uint256) {
+  function captureAwardBalance(address store) external override nonReentrant returns (uint256) {
     uint256 tokenTotalSupply = _tokenTotalSupply();
 
     // it's possible for the balance to be slightly less due to rounding errors in the underlying yield source
-    uint256 currentBalance = _balance();
+    uint256 currentBalance = _balance(store);
     uint256 totalInterest = (currentBalance > tokenTotalSupply) ? currentBalance.sub(tokenTotalSupply) : 0;
     uint256 unaccountedPrizeBalance = (totalInterest > _currentAwardBalance) ? totalInterest.sub(_currentAwardBalance) : 0;
 
@@ -501,7 +515,6 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
       catch(bytes memory error){
         emit ErrorAwardingExternalERC721(error);
       }
-      
     }
 
     emit AwardedExternalERC721(to, externalToken, tokenIds);
@@ -639,7 +652,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
     if (oldBalance < newBalance) {
       emit CreditMinted(user, controlledToken, newBalance.sub(oldBalance));
-    } 
+    }
     else if (newBalance < oldBalance) {
       emit CreditBurned(user, controlledToken, oldBalance.sub(newBalance));
     }
@@ -786,7 +799,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @param index The index to add the controlledToken
   function _addControlledToken(ControlledTokenInterface _controlledToken, uint256 index) internal {
     require(_controlledToken.controller() == this, "PrizePool/token-ctrlr-mismatch");
-    
+
     _tokens[index] = _controlledToken;
     emit ControlledTokenAdded(_controlledToken);
   }
@@ -827,13 +840,13 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @notice Delegate the votes for a Compound COMP-like token held by the prize pool
   /// @param compLike The COMP-like token held by the prize pool that should be delegated
-  /// @param to The address to delegate to 
+  /// @param to The address to delegate to
   function compLikeDelegate(ICompLike compLike, address to) external onlyOwner {
     if (compLike.balanceOf(address(this)) > 0) {
       compLike.delegate(to);
     }
   }
-  
+
   /// @notice Required for ERC721 safe token transfers from smart contracts.
   /// @param operator The address that acts on behalf of the owner
   /// @param from The current owner of the NFT
@@ -847,9 +860,9 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   /// @return The current total of all tokens
   function _tokenTotalSupply() internal view returns (uint256) {
     uint256 total = reserveTotalSupply;
-    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD  
+    ControlledTokenInterface[] memory tokens = _tokens; // SLOAD
     uint256 tokensLength = tokens.length;
-    
+
     for(uint256 i = 0; i < tokensLength; i++){
       total = total.add(IERC20Upgradeable(tokens[i]).totalSupply());
     }
@@ -877,7 +890,7 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
     }
     return false;
   }
-  
+
   /// @dev Checks if a specific token is controlled by the Prize Pool
   /// @param controlledToken The address of the token to check
   /// @return True if the token is a controlled token, false otherwise
@@ -898,11 +911,11 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
 
   /// @notice Returns the total balance (in asset tokens).  This includes the deposits and interest.
   /// @return The underlying balance of asset tokens
-  function _balance() internal virtual returns (uint256);
+  function _balance(address store) internal virtual returns (uint256);
 
   /// @notice Supplies asset tokens to the yield source.
   /// @param mintAmount The amount of asset tokens to be supplied
-  function _supply(uint256 mintAmount) internal virtual;
+  function _supply(uint256 mintAmount, address store) internal virtual;
 
   /// @notice Redeems asset tokens from the yield source.
   /// @param redeemAmount The amount of yield-bearing tokens to be redeemed
@@ -931,6 +944,11 @@ abstract contract PrizePool is PrizePoolInterface, OwnableUpgradeable, Reentranc
   modifier onlyReserve() {
     ReserveInterface reserve = ReserveInterface(reserveRegistry.lookup());
     require(address(reserve) == msg.sender, "PrizePool/only-reserve");
+    _;
+  }
+
+  modifier onlyStoreInRegistry(address store) {
+    require(storeRegistry.ensureActiveStore(store), "PrizePool/only-store");
     _;
   }
 }

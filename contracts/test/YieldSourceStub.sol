@@ -7,9 +7,9 @@ interface YieldSourceStub {
 
   function token() external view returns (IERC20Upgradeable);
 
-  function balance() external returns (uint256);
+  function balance(address store) external returns (uint256);
 
-  function supply(uint256 mintAmount) external;
+  function supply(uint256 mintAmount, address store) external;
 
   function redeem(uint256 redeemAmount) external returns (uint256);
 }

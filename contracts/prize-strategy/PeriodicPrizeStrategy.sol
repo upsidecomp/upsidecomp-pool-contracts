@@ -274,9 +274,9 @@ abstract contract PeriodicPrizeStrategy is Initializable,
   function _awardTickets(address user, uint256 amount) internal {
     prizePool.award(user, amount, address(ticket));
   }
-  
+
   /// @notice Mints ticket or sponsorship tokens for user.
-  /// @dev Mints ticket or sponsorship tokens by looking up the address in the prizePool.tokens mapping. 
+  /// @dev Mints ticket or sponsorship tokens by looking up the address in the prizePool.tokens mapping.
   /// @param user Recipient of minted tokens
   /// @param amount Amount of minted tokens
   /// @param tokenIndex Index (0 or 1) of a token in the prizePool.tokens mapping
@@ -605,7 +605,7 @@ abstract contract PeriodicPrizeStrategy is Initializable,
   function addExternalErc721Award(IERC721Upgradeable _externalErc721, uint256[] calldata _tokenIds) external onlyOwnerOrListener requireAwardNotInProgress {
     require(prizePool.canAwardExternal(address(_externalErc721)), "PeriodicPrizeStrategy/cannot-award-external");
     require(address(_externalErc721).supportsInterface(Constants.ERC165_INTERFACE_ID_ERC721), "PeriodicPrizeStrategy/erc721-invalid");
-    
+
     if (!externalErc721s.contains(address(_externalErc721))) {
       externalErc721s.addAddress(address(_externalErc721));
     }
